@@ -1,0 +1,10 @@
+# убунтутач24/003: Alpine ships the D-Bus activation file of com.lomiri.TelephonyServiceHandler with SystemdService=lomiri-telephony-service-handler.service but no such systemd user unit:
+# dbus-broker then fails every activation ("unknown unit"), e.g. indicator menu items (url-dispatcher) did nothing
+[Unit]
+Description=com.lomiri.TelephonyServiceHandler (D-Bus activated)
+PartOf=graphical-session.target
+
+[Service]
+Type=dbus
+BusName=com.lomiri.TelephonyServiceHandler
+ExecStart=/usr/bin/lomiri-telephony-service-handler

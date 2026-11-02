@@ -1,0 +1,63 @@
+# убунтутач24/003: Ubuntu Touch boot splash (background: the Ubuntu Touch default, logo and dots: build/splash/make-splash.py)
+# v3: the layout is (re)done in the refresh callback as soon as the screen size is known: at boot the script runs before
+# the DRM head is up (Window.GetWidth() 0), the logo and the dots were scaled to nothing and only the background remained.
+
+bg_src = Image("background.png");
+logo_src = Image("logo.png");
+dot_on = Image("dot-on.png");
+dot_off = Image("dot-off.png");
+
+bg_sprite = Sprite();
+bg_sprite.SetZ(-100);
+logo_sprite = Sprite();
+for (i = 0; i < 5; i++)
+    dot[i] = Sprite();
+laid_w = 0;
+laid_h = 0;
+
+fun layout() {
+    W = Window.GetWidth();
+    H = Window.GetHeight();
+    if (W <= 0 || H <= 0)
+        return 0;
+    if (W == laid_w && H == laid_h)
+        return 1;
+    laid_w = W;
+    laid_h = H;
+    bg_sprite.SetImage(bg_src.Scale(W, H));
+    bg_sprite.SetPosition(0, 0, -100);
+    s = (W * 0.62) / logo_src.GetWidth();
+    logo = logo_src.Scale(logo_src.GetWidth() * s, logo_src.GetHeight() * s);
+    logo_sprite.SetImage(logo);
+    logo_y = H / 2 - logo.GetHeight() / 2;
+    logo_sprite.SetPosition(W / 2 - logo.GetWidth() / 2, logo_y, 0);
+    step = W * 0.045;
+    dots_y = logo_y + logo.GetHeight() + H * 0.03;
+    for (i = 0; i < 5; i++)
+        dot[i].SetPosition(W / 2 + (i - 2) * step - dot_off.GetWidth() / 2, dots_y, 1);
+    return 1;
+}
+
+# the bright dot runs left to right, one position every 0.4 s (refresh is 50 Hz)
+frame = 0;
+fun refresh_callback() {
+    if (!layout())
+        return;
+    on = Math.Int(frame / 20) % 5;
+    for (i = 0; i < 5; i++) {
+        if (i == on)
+            dot[i].SetImage(dot_on);
+        else
+            dot[i].SetImage(dot_off);
+    }
+    frame++;
+}
+Plymouth.SetRefreshFunction(refresh_callback);
+
+# messages (fsck, shutdown) near the bottom
+msg_sprite = Sprite();
+fun message_callback(text) {
+    msg_sprite.SetImage(Image.Text(text, 1, 1, 1));
+    msg_sprite.SetPosition(Window.GetWidth() * 0.05, Window.GetHeight() * 0.85, 2);
+}
+Plymouth.SetMessageFunction(message_callback);

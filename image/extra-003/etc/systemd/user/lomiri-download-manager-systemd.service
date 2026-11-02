@@ -1,0 +1,10 @@
+# убунтутач24/003: Alpine ships the D-Bus activation file of com.lomiri.applications.Downloader with SystemdService=lomiri-download-manager-systemd.service but no such systemd user unit:
+# dbus-broker then fails every activation ("unknown unit"), e.g. indicator menu items (url-dispatcher) did nothing
+[Unit]
+Description=com.lomiri.applications.Downloader (D-Bus activated)
+PartOf=graphical-session.target
+
+[Service]
+Type=dbus
+BusName=com.lomiri.applications.Downloader
+ExecStart=/usr/bin/lomiri-download-manager

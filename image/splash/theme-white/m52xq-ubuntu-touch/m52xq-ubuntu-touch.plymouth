@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Ubuntu Touch (M52XQ)
+Description=Ubuntu Touch boot splash: pink background, white logo, white caption postmarketOS-Lomiri, 5 running dots
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/m52xq-ubuntu-touch
+ScriptFile=/usr/share/plymouth/themes/m52xq-ubuntu-touch/m52xq-ubuntu-touch.script

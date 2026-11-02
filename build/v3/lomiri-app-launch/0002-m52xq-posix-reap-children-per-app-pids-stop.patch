@@ -1,0 +1,118 @@
+diff -ru alpine/liblomiri-app-launch/jobs-posix.cpp lomiri-app-launch-0.2.0/liblomiri-app-launch/jobs-posix.cpp
+--- alpine/liblomiri-app-launch/jobs-posix.cpp	2026-10-25 20:04:59.285962336 +0200
++++ lomiri-app-launch-0.2.0/liblomiri-app-launch/jobs-posix.cpp	2026-10-25 20:42:25.954597548 +0200
+@@ -26,7 +26,9 @@
+ #include "lomiri-app-launch-trace.h"
+ 
+ #include <gio/gio.h>
++#include <signal.h>
+ #include <sys/types.h>
++#include <tuple>
+ #include <unistd.h>
+ 
+ #include <algorithm>
+@@ -345,9 +347,26 @@
+             g_debug("execvpe failed from child.");
+             g_debug("errno: %d", errno);
+             g_debug("errmsg: %s", strerror(errno));
++            /* m52xq: the child used to go on as a second copy of the launcher (Lomiri) */
++            _exit(127);
+         }
+         g_debug("child_pid: %d", child_pid);
+-        launchedpids.emplace_back(child_pid);
++        if (child_pid > 0)
++        {
++            /* m52xq: reap the app and tell Lomiri it stopped. Without it every closed app stayed a zombie of Lomiri and
++               "running" for it: tapping the app again only tried to focus a window that was gone ("Application
++               requested te be focused but no window for it"), the app never opened again until Lomiri restarted. */
++            launchedpids[key(appId, job, instance)] = child_pid;
++            auto data = new std::tuple<std::shared_ptr<manager::POSIX>, std::string, std::string, std::string>(
++                manager, job, appIdStr, instance);
++            GSource* source = g_child_watch_source_new(child_pid);
++            g_source_set_callback(source, reinterpret_cast<GSourceFunc>(reinterpret_cast<void (*)(void)>(&POSIX::childExited)),
++                                  data, nullptr);
++            g_source_attach(source, g_main_context_get_thread_default());
++            g_source_unref(source);
++            /* what the systemd backend signals when the unit appears */
++            manager->sig_jobStarted(job, appIdStr, instance);
++        }
+ 
+         tracepoint(lomiri_app_launch, liblal_start_message_sent, appIdStr.c_str());
+ 
+@@ -387,24 +406,52 @@
+     return {appids.begin(), appids.end()};
+ }
+ 
++std::string POSIX::key(const AppID& appId, const std::string& job, const std::string& instance)
++{
++    /* not the instance: instances() (a stub) always answers "somestring", so qtmir's pid lookup never matched the
++       launch and named the window's app from its command line ("qmlkonsole", "/usr/bin/plasma-dialer"), the
++       launched app stayed "starting, no window" */
++    return std::string(appId) + "\n" + job;
++}
++
++void POSIX::childExited(GPid pid, gint status, gpointer user_data)
++{
++    auto data = static_cast<std::tuple<std::shared_ptr<manager::POSIX>, std::string, std::string, std::string>*>(user_data);
++    auto& [manager, job, appid, instance] = *data;
++    g_debug("child %d of '%s' exited, status %d", pid, appid.c_str(), status);
++    g_spawn_close_pid(pid);
++    for (auto it = manager->launchedpids.begin(); it != manager->launchedpids.end(); ++it)
++    {
++        if (it->second == pid)
++        {
++            manager->launchedpids.erase(it);
++            break;
++        }
++    }
++    manager->sig_jobStopped(job, appid, instance);
++    delete data;
++}
++
+ pid_t POSIX::unitPrimaryPid(const AppID& appId, const std::string& job, const std::string& instance)
+ {
+-    // TODO: STUB
+-    g_debug("unitPrimaryPid stub called...");
+-    return 0;
++    auto it = launchedpids.find(key(appId, job, instance));
++    return it == launchedpids.end() ? 0 : it->second;
+ }
+ 
+ std::vector<pid_t> POSIX::unitPids(const AppID& appId, const std::string& job, const std::string& instance)
+ {
+-    // TODO: STUB
+-    g_debug("unitPids stub called...");
+-    return launchedpids;
++    auto pid = unitPrimaryPid(appId, job, instance);
++    if (pid == 0)
++        return {};
++    return {pid};
+ }
+ 
+ void POSIX::stopUnit(const AppID& appId, const std::string& job, const std::string& instance)
+ {
+-    // TODO: STUB
+-    g_debug("stopUnit stub called...");
++    /* m52xq: was a stub (closing an app from the app switcher did nothing to the process); what systemd's stop does */
++    auto pid = unitPrimaryPid(appId, job, instance);
++    if (pid > 0)
++        kill(pid, SIGTERM);
+ }
+ 
+ core::Signal<const std::string&, const std::string&, const std::string&>& POSIX::jobStarted()
+diff -ru alpine/liblomiri-app-launch/jobs-posix.h lomiri-app-launch-0.2.0/liblomiri-app-launch/jobs-posix.h
+--- alpine/liblomiri-app-launch/jobs-posix.h	2026-06-19 12:11:06.000000000 +0300
++++ lomiri-app-launch-0.2.0/liblomiri-app-launch/jobs-posix.h	2026-10-25 20:05:16.230048767 +0200
+@@ -71,7 +71,11 @@
+ 
+ private:
+ 
+-    std::vector<pid_t> launchedpids;
++    /* m52xq: the pid of every launched job instance (key()), was one list for all apps: pids() of any app returned
++       every pid ever launched (pause / resume of one app stopped them all) */
++    std::map<std::string, pid_t> launchedpids;
++    static std::string key(const AppID& appId, const std::string& job, const std::string& instance);
++    static void childExited(GPid pid, gint status, gpointer user_data);
+ //     std::string cgroup_root_;
+ //
+ //     /** Connection to the User DBus bus */

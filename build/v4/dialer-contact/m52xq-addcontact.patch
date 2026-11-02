@@ -1,0 +1,12 @@
+34a35,37
+>     // m52xq: PersonPluginManager.addContact() returns false until a PersonsModel has loaded the vCard data source
+>     property QtObject keepSource: KPeople.PersonsModel {}
+> 
+52c55,59
+<                     name.accepted()
+---
+>                     // m52xq: write the whole addressee back; a sub-property write on a value-type property is dropped (empty FN/N in the vCard)
+>                     var a = root.addressee
+>                     a.formattedName = name.text
+>                     a.givenName = name.text
+>                     root.addressee = a

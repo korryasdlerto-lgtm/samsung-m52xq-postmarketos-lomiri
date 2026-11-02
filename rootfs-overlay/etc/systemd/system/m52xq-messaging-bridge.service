@@ -1,0 +1,15 @@
+[Unit]
+Description=M52XQ: unread SMS in the Lomiri messages indicator
+After=multi-user.target
+
+[Service]
+User=user
+Environment=XDG_RUNTIME_DIR=/run/user/10000
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/10000/bus
+Environment=HOME=/home/user
+ExecStart=/usr/local/bin/m52xq-messaging-bridge
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

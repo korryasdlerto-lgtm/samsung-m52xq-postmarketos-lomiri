@@ -1,0 +1,19 @@
+#!/bin/sh
+# M52XQ: the sound card after a lost ADSP start race. The LPASS drivers that vote through the ADSP AFE are sometimes probed
+# right after its APR service, before the audio PD is up: "q6afe cmd 0x100f4 returned error 0x16", "AFE failed to vote
+# (3)", probe -110, and a driver never tries again. Then rx/tx macro, SoundWire and the card wait forever ("no
+# soundcards"). Which drivers lose it varies: va_macro (3370000.codec) on one boot, also the LPASS LPI pin controller
+# (33c0000.lpass-lpi-pinctrl) on another (25.10, v3). Retry the probe of the ones without a driver until the card is there.
+DEVS="33c0000.lpass-lpi-pinctrl 3370000.codec"
+for i in $(seq 40); do
+	grep -q '^ *[0-9]' /proc/asound/cards 2>/dev/null && exit 0
+	for d in $DEVS; do
+		[ -e /sys/bus/platform/devices/$d ] || continue
+		[ -e /sys/bus/platform/devices/$d/driver ] && continue
+		echo $d > /sys/bus/platform/drivers_probe 2>/dev/null
+		[ -e /sys/bus/platform/devices/$d/driver ] && echo "m52xq-audio-reprobe: $d bound (try $i)"
+	done
+	sleep 3
+done
+echo "m52xq-audio-reprobe: still no sound card" >&2
+exit 1

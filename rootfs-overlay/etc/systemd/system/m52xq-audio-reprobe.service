@@ -1,0 +1,12 @@
+[Unit]
+Description=M52XQ: retry the LPASS VA macro probe lost to the ADSP start race (sound card)
+After=m52xq-adsp-start.service
+Wants=m52xq-adsp-start.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/m52xq-audio-reprobe
+TimeoutStartSec=150
+
+[Install]
+WantedBy=multi-user.target

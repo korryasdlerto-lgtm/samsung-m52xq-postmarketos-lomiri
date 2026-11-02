@@ -1,0 +1,10 @@
+# убунтутач24/003: Alpine ships the D-Bus activation file of com.lomiri.applications.Uploader with SystemdService=lomiri-upload-manager-systemd.service but no such systemd user unit:
+# dbus-broker then fails every activation ("unknown unit"), e.g. indicator menu items (url-dispatcher) did nothing
+[Unit]
+Description=com.lomiri.applications.Uploader (D-Bus activated)
+PartOf=graphical-session.target
+
+[Service]
+Type=dbus
+BusName=com.lomiri.applications.Uploader
+ExecStart=/usr/bin/lomiri-upload-manager

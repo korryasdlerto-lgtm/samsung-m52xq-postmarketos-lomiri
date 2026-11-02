@@ -1,0 +1,20 @@
+#!/bin/sh
+# m52xq (убунтутач24/003): Lomiri passes its apps only part of its environment (QT_*, XDG_*, MIR_* ...), not GRID_UNIT_PX or LANG,
+# so every Ubuntu Touch (UITK) app came up with the default 8 px grid unit, ~2.5 times too small. The app .desktop
+# copies in /usr/local/share/applications start the app through this script.
+export GRID_UNIT_PX="${GRID_UNIT_PX:-21}"
+# started by lomiri-url-dispatcher (System Settings from the shade) a Qt 5 app gets no QT_QPA_PLATFORM and tries xcb
+export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-wayland}"
+# what Lomiri gives the apps it starts from the launcher but lomiri-url-dispatcher does not: without them an app opened from
+# the shade / a link drew its own desktop title bar ("clock.ubports" with minimize/maximize/close) and had no OSK
+export QT_WAYLAND_DISABLE_WINDOWDECORATION="${QT_WAYLAND_DISABLE_WINDOWDECORATION:-1}"
+export QT_QUICK_CONTROLS_MOBILE="${QT_QUICK_CONTROLS_MOBILE:-true}"
+export QT_IM_MODULE="${QT_IM_MODULE:-maliit}"
+export UITK_ICON_THEME="${UITK_ICON_THEME:-suru}"
+# the language is not passed either (System Settings and the apps stayed English): the one of the wizard / Settings
+l=$(busctl --system get-property org.freedesktop.Accounts "/org/freedesktop/Accounts/User$(id -u)" \
+	org.freedesktop.Accounts.User Language 2>/dev/null | sed -n 's/^s "\(.*\)"$/\1/p')
+[ -n "$l" ] && export LANG="${l%%.*}.UTF-8" LANGUAGE="${l%%.*}"
+# System Settings lists the languages with `locale -a`: our list (lomiri-bin/locale, .utf8 names) must come first
+export PATH="/usr/local/lib/m52xq/lomiri-bin:${PATH:-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin}"
+exec "$@"

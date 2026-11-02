@@ -1,0 +1,123 @@
+в5 — правки после архива lomiri v4 (создана 2026-10-27 по просьбе пользователя). Рутфс v3 не пересобираем: правки идут инъекциями —
+файлы в в5/rootfs-files (пути как в корне рутфса) попадут в archive-v5/mainline-extras/rootfs-files и ставятся установщиком поверх образа
+v3 + инъекции в4. Каждая правка: сначала проверить на телефоне, потом положить сюда; README (убунтутач24/README.md) с командами обязателен.
+Архив v4 собран (003/postmarketos-lomiri-m52xq-mainline-v4.zip, md5 1971fb4f…), в4 больше не меняю. Сборка архива v5 — только по явной команде.
+
+ПЛАНЫ НА в5 (по просьбе пользователя):
+0. УСТАНОВЩИК (найдено 27.10 после установки v4): `zip -r` без `-y` сохраняет симлинки как копии файлов, поэтому четыре службы в4
+   (m52xq-messaging-bridge, m52xq-osk-bridge, m52xq-ringtone, m52xq-sim-slots) легли в etc/systemd/system/multi-user.target.wants/ обычными ФАЙЛАМИ и остались
+   выключенными (disabled). На телефоне исправлено вручную (`ln -sfn ../X.service …/multi-user.target.wants/X.service; systemctl daemon-reload; systemctl start …`).
+   Для архива v5: либо собирать zip с `-y` (проверить, что TWRP распаковывает симлинки), либо добавить в update-binary после инъекции rootfs-files
+   `ln -sfn ../X.service $ROOTFS_MNT/etc/systemd/system/multi-user.target.wants/X.service` для всех служб в4/в5. Архив v4 уже установлен — не пересобирать.
+0в. ПРАВА ФАЙЛОВ (найдено 27.10 после установки v4): m52xq-sim-mode-menu и m52xq-incall-proximity лежали в в4/rootfs-files с правами 664 (без x), поэтому после установки
+   Lomiri перестала видеть приложение «Менеджер SIM» (lomiri-app-launch-appids проверяет исполняемость Exec; из боковой панели и списка приложений значок пропал).
+   На телефоне исправлено `chmod 755`, в в4/rootfs-files права тоже исправлены (в архиве v4 остаются 664). В v5 перед сборкой проверять:
+   `find в*/rootfs-files -type f \( -path '*/bin/*' -o -path '*/sbin/*' -o -path '*/libexec/*' \) ! -perm -u+x`.
+0б. Сон модема: m52xq-modem-2g.sh (v40, двойная SIM через m52xq-nas-mode) после пробуждения от модема (SMS/звонок, irq пустой) сразу возвращает 4G/5G; при SMS это
+   лишняя перерегистрация — сделать «GSM kept» как для Wi-Fi/IPA и возвращать режим, когда тёмное окно закончилось клавишей/звонком (m52xq-wifi-dark restore).
+   5G: на SIM1 в ModemManager разрешено 2g,3g,4g,5g (preferred 5g), на SIM2 — 2g,3g,4g (preferred 4g): выровнять/дать выбор в «Мобильная сеть».
+1. Своя мелодия звонка: mp3 и другие форматы (ogg, wav, flac…), выбор в «Настройках → Звук» (и/или файл /etc/m52xq-ringtone.conf: RINGTONE=…, VIBRATE=0|1).
+   Сейчас: служба m52xq-ringtone играет systemd-системную «Celestial.ogg» из /usr/share/sounds/lomiri/ringtones. Нужен декодер mp3 у PulseAudio/paplay
+   (или gst-play), копирование своего файла в ~/Music или /usr/share/sounds, отдельная мелодия для SMS (уведомление).
+2. Кнопки приёма и сброса вызова на заблокированном экране: нижние кнопки окна звонилки над блокировкой не реагируют на касания; проверить snap decision
+   (Принять/Отклонить) и окно звонилки (plasma-dialer без FullScreen, usr/bin/plasma-dialer), сделать так, чтобы приём/отклонение работали и с блокировки.
+3. WoWLAN при сне доделать: сейчас на время сна драйвер Wi-Fi выгружается (m52xq-wifi-sleep.sh), поэтому Wi-Fi не будит телефон. Цель: чтобы Wi-Fi будил
+   как в Plasma (пробуждение по пакету), без падения прошивки WPSS при пробуждении кнопкой (CSS sleep failure / ccpm_mhi.c:397 после WoW-сна);
+   корень: ath11k_ahb_hif_resume шлёт SMP2P POWER_SAVE_EXIT и ждёт WMI_WOW_WAKEUP_HOST, прошивка не отвечает; возможные пути — параметры m52xq_wow_*,
+   порядок suspend/resume, поведение NetworkManager (он ставит wlan0 unmanaged на пробуждении даже при wake-on-wlan=8), NTP-петля уже устранена (m52xq-timesyncd.sh).
+   ИТОГ ПОИСКА (27.10): сам WoW РАБОТАЕТ — в фазе с NTP-петлёй пакеты будили телефон каждые ~0,6 с (WOW reason 39 BPF_ALLOW, APF «только unicast», ce2),
+   причём короткие сны (≤~1 с) выходили без падения. Падает прошивка (CSS sleep failure due to requester id 0xd holding UMAC lock → ccpm_mhi.c:397, WPSS крашится циклом) ТОЛЬКО
+   при ДОЛГОМ WoW-сне, когда хост просыпается НЕ от Wi-Fi (кнопка; 3 раза из 3 без NTP-петли). Хост шлёт SMP2P POWER_SAVE_EXIT и ждёт WMI_WOW_WAKEUP_HOST 3 с — прошивка уже в CSS sleep
+   (или входит в него) и не отвечает. Гипотезы: гонка входа прошивки в CSS sleep и SMP2P exit хоста (requester 0xd = хост-запрос power-save exit держит UMAC lock);
+   прошивка Samsung (WLAN.MSL.1.0.1.c3-00228, 2025-02-19) против эталонной 00887, на которой Qualcomm проверял коммит 69ccee619a38 (WoW для WCN6750). Уже учтено в драйвере:
+   флаги WMI_WOW_ENABLE 0x20 (system suspend), APF, keepalive 15, inactivity 50, hw filter 1, evt_array. ЭКСПЕРИМЕНТЫ ДЛЯ в5 (по одному): 1) долгий WoW-сон (60+ с) и пробуждение пингом,
+   не кнопкой — переживёт ли прошивка; 2) кнопка через 2/5/10/30 с сна — после какой длительности падает; 3) параметры m52xq_wow_* (inactivity=0, keepalive=0, flags без 0x20);
+   4) задержка/повтор SMP2P exit при пробуждении не от Wi-Fi, или «разбудить» Wi-Fi (WoW disable) до того, как хост занят; 5) отключать глубокий сон прошивки (PS/DTIM) на время сна.
+   Замер расхода заряда за ночь и ток сна (цель 30–35 мА; сейчас <~2 %/ч по грубой оценке).
+
+Что ещё не забыто (перенесено из в4 и из сегодняшних проверок):
+4. Голубая полоса «Нажмите для возврата к вызову» (ActiveCallHint.qml) ведёт на dialer:/// — заменить на запуск нашей звонилки (org.kde.plasma.dialer).
+5. Уведомление о входящем: сырые теги <br><b> в callerDisplay (kde-telephony-daemon, notification-manager.cpp); аватар «+7».
+6. «Пропущенный вызов» в индикатор сообщений (мост m52xq-messaging-bridge) и на экран блокировки; в журнале звонилки поле state/stateReason (7/4 = пропущен?) выяснить.
+7. Контакты: две карточки без имени (+380 63 212 7937, +380 97 648 6774, сохранены до исправления формы), тестовый контакт «ТЕСТ-m52xq» (contact (2).vcard) —
+   с разрешения пользователя поправить/удалить; дубли сообщений в чате (от ручных запусков демона).
+8. SIM 1 (Kyivstar): отправка SMS отклоняется сетью (нет денег на счету) — перепроверить после пополнения; исходящие звонки на SIM1/SIM2, SMS, APN, роуминг.
+9. Spacebar: значки темы не грузятся (кнопки/иконки пустые — «document-send», «state-error»…): решить (icon theme для Qt-приложений Lomiri); подпись «SIM N» уже есть.
+10. Pure Maps: профиль «онлайн» по умолчанию; блок Ethernet в шторке (предложено скрыть); данные Organic Maps (~/.local/share/OMaps) не удаляются.
+11. Камера: зум щипком, цвет (libcamera tuning), автофокус, GPU-дебайер, 4K30 (Venus); UFS-зависания (OCS invalid) — отдельно.
+12. Ярлыки/запуск приложений: после принудительного закрытия (pkill) Lomiri держит «призрачную» запись (нажатие ничего не запускает) — не убивать приложения pkill,
+    только lomiri-app-stop; приложения для проверки запускать через systemd-run -p KillMode=process … lomiri-app-launch (не из ssh-сессии: умирают вместе с ней).
+13. Отладка на телефоне, которую надо снять/проверить: журнал KEY_POWER в m52xq-powerkey (оставлен, шумит в журнале), /etc/m52xq/sms-sim (=2) — решить, оставлять ли;
+    90-m52xq-wake-on-wlan.conf (=8, на сон не влияет) — оставлять ли.
+14. Пароль user 1111, Spacebar/демон запускаются из сессии Lomiri (polkit): запускать демон только так, правило polkit не добавлять без решения пользователя.
+
+Сделано в в4 (для справки, всё в архиве v4): телефония (звонок, мелодия, менеджер SIM, звонилка над блокировкой), журнал с именами и SIM, Spacebar с обеими SIM,
+индикатор сообщений, контакты (сохранение имени), тёмный сон/пробуждение, NTP-петля, клавиатура Firefox.
+
+================================================================================================================================
+СДЕЛАНО В в5 ЗА 2026-10-29 (всё проверено на телефоне v4; в архив v5 НЕ собрано; версии/места файлов — в5/rootfs-files, сборки — в5/build-*)
+================================================================================================================================
+a) ЗАСТАВКА Plymouth: сверху логотип postmarketOS, под ним «postmarketOS» / «Lomiri» (Ubuntu Bold), ниже «ubuntu touch style», точки; фон НЕ менялся.
+   Генератор: 003/build/splash/make-splash-white.py (команда `python3 make-splash-white.py stage theme-phone/m52xq-ubuntu-touch <папка>`; основа — файлы
+   ТЕЛЕФОНА theme-phone, не старая тема из репозитория). Тема: в5/rootfs-files/usr/share/plymouth/themes/m52xq-ubuntu-touch/ (logo.png, caption.png, dot-*.png,
+   script с константой logo_ref_w, background.png прежний). Установлено на телефон (бэкап /root/splash-backup). Пользователь заставку при загрузке пока не оценил.
+b) ПОДСВЕТКА ЗАСТАВКИ: systemd-backlight восстанавливал сохранённую яркость 0 ('too low; increasing to 2'). Юнит systemd-backlight@backlight:ae94000.dsi.0.service
+   замаскирован (симлинк на /dev/null: в5/rootfs-files/etc/systemd/system/…); яркостью занимается m52xq-powerkey (как в классике, п. 47). Проверено: после перезагрузки 235/255.
+c) «Nura» → «postmarketOS Lomiri»: /usr/lib/os-release (NAME, PRETTY_NAME; ID=nura не менял), /etc/issue, /etc/motd — в5/rootfs-files/usr/lib/os-release, etc/issue, etc/motd
+   (бэкап на телефоне /root/nura-backup). «Настройки → О телефоне» берёт название из os-release (после перезапуска Настроек); мастер приветствия — System.distroName.
+d) КАМЕРА Lomiri на v4: аппаратный Venus. Плагин m52xqcamsrc (в5/build-m52xqcamsrc/gstm52xqcamsrc.c = исходник классика + videorate: 4K ограничен 24 к/с, Venus не берёт 4K30
+   «HW can't support this load») содержит камеру, программный автофокус (линза fp5529) и элемент m52xqvenc (профиль Baseline, уровень 5.1, QP 33/35). Сборка:
+   `sudo cp gstm52xqcamsrc.c ~/.local/var/pmbootstrap/chroot_buildroot_aarch64/tmp/ && sudo chroot … sh -c 'cd /tmp && gcc -O2 -fPIC -shared -Wall -o libgstm52xqcamsrc.so
+   gstm52xqcamsrc.c -lm $(pkg-config --cflags --libs gstreamer-1.0 gstreamer-video-1.0); strip libgstm52xqcamsrc.so'` (md5 0531b951…). Установка: /usr/lib/gstreamer-1.0/.
+   Ярлык камеры /usr/local/share/applications/lomiri-camera-app.desktop: добавлено QML_XHR_ALLOW_FILE_WRITE=1 (касание фокуса пишется в /run/user/10000/m52xq-focus).
+   QML (в5/rootfs-files/usr/share/lomiri-camera-app/qml/…): FocusRing.qml (квадрат фокуса), ViewFinderOverlay.qml (4K-видоискатель при записи 4K, касание везде),
+   ViewFinderView.qml (m52xqFocusAt), OptionsOverlay.qml (screenHeight = main.height: optionsOverlay.height — лишь нижняя полоса 63–336 px и список сжимался до одного пункта).
+   Библиотека CameraApp/libcamera-qml.so (md5 c41bed8f…): 16 Мп = 4608×3456 (бинированный режим, без шахматки), список видеоразмеров ВСЕГДА 720p/1080p/2160p (иначе после
+   4K-видоискателя камера сообщала единственный размер), исходники в5/build-lomiri-camera-app/src (патчи классика m52xq-16mp-binned, m52xq-video-4k, m52xq-tap-focus).
+   СБОРКА Qt5: отдельный Alpine-chroot /home/sasha/qt5-build-root (`sudo ~/.local/var/pmbootstrap/apk.static --arch aarch64 --root $R --initdb --keys-dir /usr/share/apk/keys
+   -X …alpine/edge/main -X …edge/community --allow-untrusted add alpine-base build-base cmake samurai qt5-qtbase-dev qt5-qtdeclarative-dev qt5-qtmultimedia-dev qt5-qtsvg-dev
+   qt5-qtquickcontrols2-dev exiv2-dev gettext-dev pkgconf`); QZXing статически (libqzxing.a), `ninja -C build3 camera-qml`, strip. Qt 5.15.18_git20251101 как на телефоне.
+   Проверено: видео 1080p/4K с основной и фронтальной через Venus, звук AAC; запись фронтальной 4K ≈ 17 к/с (датчик/ISP), основной ≈ 24; плеер открывает ролик.
+   ИЗВЕСТНО: камера держит /dev/video18 (Venus) после остановки записи; при активном 4K-кодировании родной плеер не открывает 4K («HW can't support this load») — после
+   закрытия камеры играет. Лечение (не сделано): освобождать кодировщик по EOS в m52xqvenc. Откат: /root/bk-tapfocus, /root/*.v4orig.
+e) ZRAM: штатный postmarketos-zram-swap.service не стартовал (ExecCondition=sh без абсолютного пути); drop-in в5/rootfs-files/etc/systemd/system/postmarketos-zram-swap.service.d/10-m52xq.conf
+   (/bin/sh). Подкачка 7440 МБ zstd, vm.min_free_kbytes=100000. Без неё запись 4K давала OOM (убиты maliit, thumbnailer, magick, сама камера).
+f) PURE MAPS: osmscout-server падал при старте (valhalla 3.9.1 требует ключи loki.service_defaults.mvt_min_zoom_road_class, mvt_cache_min_zoom, mvt_max_age);
+   шаблон /usr/share/osmscout-server/data/valhalla.json-3.4.0 дополнен (в5/rootfs-files/usr/share/osmscout-server/…, бэкап /root/valhalla.json-3.4.0.orig). Карта: онлайн-профиль.
+g) ГЕОПОЗИЦИЯ: drop-in lomiri-location-service 20-m52xq-gpsd.conf дополнен ожиданием порта 2947 (gpsd запускается мостом позже; без этого «GPSD Error: unknown error» каждую
+   секунду). Служба active, иконка в панели есть, но спутников 0 (помещение): фикс не получен (в классике ловился у окна ≈2 мин).
+h) Wi-Fi ВО СНЕ (WoWLAN) — РЕЗУЛЬТАТЫ 2026-10-29 (пункт 3 выше): 1) штатная схема (m52xq-wifi-sleep.sh: драйвер выгружается на сон) — сон 6 мин, кнопкой «разблокировался сразу», WPSS цел,
+   но по сети не разбудить. 2) скрипт отключён (chmod -x), сон 1 мин 47 с: пинги с ПК НЕ будят (ARP-запрос широковещательный, APF пропускает только unicast), кнопка → WPSS crash
+   (ccpm_mhi.c:397, #5/#6, цикл), Wi-Fi до перезагрузки пропадает (modprobe -r/+ ath11k_ahb НЕ помогает). 3) с постоянной ARP-записью на ПК
+   (`sudo ip neigh replace 192.168.1.189 lladdr <mac> dev wlp5s0 nud permanent`) unicast-пинг БУДИТ телефон (цепочка suspend entry → dark resume → exit каждые ~25 с, WPSS цел), но
+   после 4–5 таких циклов (≈5 мин) WPSS упал (crash #12/#13 на 306 с). ВЫВОД: прошивка Samsung WLAN.MSL…c3-00228 нестабильна при любом многократном/долгом WoW-сне, не только при
+   кнопке; опасно оставлять m52xq-wifi-sleep.sh выключенным. Дальше (по плану): правка ath11k_ahb_hif_resume (ожидание/повтор SMP2P exit) и ARP-ответ в APF — только с
+   правкой ядра (нужна явная команда на сборку boot). Защитный скрипт возвращён (+x).
+i) WoWLAN, ПРОБА A (2026-10-30, продолжение h): флаги WMI_WOW_ENABLE = 0x20 (`echo 32 > /sys/module/ath11k/parameters/m52xq_wow_flags`, без 0x40 mod DTIM и 0x80 forced DTIM,
+   m52xq-wifi-sleep.sh отключён `chmod -x`, на ПК постоянная ARP-запись телефона). Цикл: раз в минуту одиночный unicast-пинг + проверка dmesg (скрипт /tmp/wow_cycle.sh; считать
+   падения нужно `grep -c "fatal error recei[v]ed"`, иначе grep считает собственные строки sudo-журнала). Итог: 8 циклов сна/пробуждения подряд (≈7 мин) БЕЗ падения WPSS
+   (с флагами 0xe0 прошивка падала на 4–5-м цикле); на 9-м падение: в журнале ath11k «timed out while waiting for wow wakeup completion», «failed to resume hif: -110»,
+   далее WMI command timeout, через ~10 с WPSS crash #1 (ccpm_mhi.c:397 mhi_issue_request Failed!), цикл падений, Wi-Fi до перезагрузки (modprobe -r/+ не помогает).
+   То есть прошивка перестаёт отвечать WMI_WOW_WAKEUP_HOST на SMP2P POWER_SAVE_EXIT (в ath11k_ahb_hif_resume, ahb.c:754, таймаут 3 с). Флаги 0x20 вдвое увеличили живучесть, но не лечат.
+   Ложное событие «key pressed, dark resume ended, panel woken up» через 1 с после пробуждения пакетом (22:01:18 UTC, 29.10) включило подсветку без гашения — разобрать (m52xq-powerkey/панель).
+   Следующие шаги (ядро, только по команде на сборку boot): повтор SMP2P exit при таймауте/удлинение ожидания, ARP-ответ в APF, сброс WoW на хосте при ошибке resume до падения WPSS.
+   Защитный m52xq-wifi-sleep.sh после пробы возвращён (+x).
+j) WoWLAN, ПРАВКА МОДУЛЯ ath11k_ahb (2026-10-30): в ath11k_ahb_hif_resume (drivers/net/wireless/ath/ath11k/ahb.c, СВОЁ дерево майнлайн/linux, ядро #430 — совпадает с телефоном) добавлены
+   три параметра (/sys/module/ath11k_ahb/parameters): m52xq_resume_delay_ms (пауза перед SMP2P POWER_SAVE_EXIT, 0), m52xq_resume_wait_s (ожидание ответа прошивки, 3 с), m52xq_resume_retries
+   (повторная отправка POWER_SAVE_EXIT после таймаута, 0). Исходники: в5/build-ath11k-ahb/ahb.c.m52xq-resume (исходник до правки — ahb.c.orig-v240), модуль ath11k_ahb.ko.m52xq-resume
+   (md5 0eb4cbdf…, vermagic 7.1.2 SMP preempt mod_unload aarch64 как у ядра телефона; MODVERSIONS выключен → модуль пригоден ТОЛЬКО для ядра #430). Boot НЕ менялся (ath11k core =y, ahb =m).
+   Сборка: `sudo mount --bind майнлайн/linux /home/sasha/pmbootstrap-work/chroot_native/mnt/kernel; sudo chroot /home/sasha/pmbootstrap-work/chroot_native /bin/sh -c 'cd /mnt/kernel &&
+   make ARCH=arm64 LLVM=1 -j12 drivers/net/wireless/ath/ath11k/ath11k_ahb.ko'` (Alpine clang 22.1.3). Установка: /lib/modules/7.1.2/kernel/drivers/net/wireless/ath/ath11k/ath11k_ahb.ko
+   (в5/rootfs-files/lib/modules/…; бэкап на телефоне /root/ath11k_ahb.ko.v240-phone, md5 ef299cc7…), depmod -a 7.1.2.
+   Рабочие значения после пробы (выставлять после загрузки драйвера, например в m52xq-wifi-up): m52xq_resume_wait_s=5, m52xq_resume_retries=2, ath11k m52xq_wow_flags=32 (0x20).
+   РЕЗУЛЬТАТ: 20 циклов сон/пробуждение-пингом подряд (≈25 мин), 0 таймаутов WoW, 0 падений WPSS (раньше 4–5 цикла с 0xe0 и 9-й с 0x20 без правки); сон 5 мин, пробуждение НЕ по Wi-Fi
+   (USB) — WPSS цел, Wi-Fi переподключился. Остаётся: в долгом сне (≈5 мин) пинги не будят (клиента сбрасывает роутер, WoW «disconnect» не сработал) — проверить wake on disconnect/deauth,
+   ARP-ответ в APF, поведение NetworkManager; проверить пробуждение именно КНОПКОЙ после долгого сна; затем решить, отключать ли m52xq-wifi-sleep.sh (сейчас на телефоне chmod -x, вернуть +x до решения).
+   Скрипты проб: /tmp/wow_cycle2.sh (счётчики из `journalctl -k -b`, не из dmesg — буфер dmesg переполняется и счётчик «suspends» застывает).
+k) АРХИВ v5 СОБРАН (2026-10-30, по команде «собирай в5»; НЕ ПРОШИТ): 003/postmarketos-lomiri-m52xq-mainline-v5.zip (1 570 774 902 байт, md5 a7b6255ca8080f1251fd8b243fe26ab1, +.md5, лог zip-v5.log; `unzip -t` без ошибок), папка 003/archive-v5 (описание — README, запись 2026-10-30).
+   Служба WoW: в5/rootfs-files/etc/systemd/system/m52xq-wow-params.service (+ симлинк в multi-user.target.wants), /usr/local/sbin/m52xq-wow-params (echo 32 > ath11k m52xq_wow_flags),
+   /etc/modprobe.d/m52xq-ath11k-wow.conf (options ath11k_ahb m52xq_resume_wait_s=5 m52xq_resume_retries=2), usr/lib/systemd/system-sleep/m52xq-wifi-sleep.sh = пустой (exit 0).
+   Проверено на телефоне после ОБЫЧНОЙ перезагрузки без ручных правок: параметры и флаги выставились сами, Wi-Fi/WoW на месте; затем сон ≈5 мин + пинг (разбудил, WPSS цел) и пробуждение кнопкой — без падения.
+   Не проверено на чистой прошивке (установка v5 через TWRP): симлинки служб (цикл в update-binary), маска systemd-backlight, замена пустого скрипта сна, ath11k_ahb.ko из в5.
+   ОСТАЛОСЬ (в6): «чужой» пинг без ARP-записи не будит (APF отбрасывает широковещательный ARP — ARP-ответ в APF, нужна правка ядра/модуля); Venus держится камерой после остановки записи (освобождать
+   в m52xqvenc по EOS); 4K фронтальной ≈17 к/с; ложное «key pressed» при пробуждении пакетом (подсветка); геопозиция в помещении; заставку пользователь ещё не оценил.

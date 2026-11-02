@@ -1,0 +1,2246 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: lomiri-system-settings\n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: 2026-08-22 15:23+0000\n"
+"Last-Translator: \"Roker2 (Dmitry Minko)\" <dimaminko2000@gmail.com>\n"
+"Language-Team: Russian <https://hosted.weblate.org/projects/lomiri/lomiri-"
+"system-settings/ru/>\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"X-Generator: Weblate 2026.9.dev0\n"
+"X-Launchpad-Export-Date: 2015-07-16 05:41+0000\n"
+
+msgid "%1 attempt allowed."
+msgid_plural "%1 attempts allowed."
+msgstr[0] "Допускается %1 попытка."
+msgstr[1] "Допускается %1 попытки."
+msgstr[2] "Допускается %1 попыток."
+
+msgid "%1 free"
+msgstr "%1 свободно"
+
+msgid "%1 hour ago"
+msgid_plural "%1 hours ago"
+msgstr[0] "%1 час назад"
+msgstr[1] "%1 часа назад"
+msgstr[2] "%1 часов назад"
+
+msgid "%1 minute ago"
+msgid_plural "%1 minutes ago"
+msgstr[0] "%1 минуту назад"
+msgstr[1] "%1 минуты назад"
+msgstr[2] "%1 минут назад"
+
+msgid "%1 second ago"
+msgid_plural "%1 seconds ago"
+msgstr[0] "%1 секунду назад"
+msgstr[1] "%1 секунды назад"
+msgstr[2] "%1 секунд назад"
+
+msgid "%1 — %2"
+msgstr "%1 — %2"
+
+msgid "%1%"
+msgstr "%1%"
+
+msgid "%1, %2, %3 bit"
+msgstr "%1, %2, %3 бит"
+
+msgid "%1, Exp.: %2"
+msgstr "%1, Истекает: %2"
+
+msgid "%1/%2"
+msgstr "%1/%2"
+
+msgid "%1…"
+msgstr "%1…"
+
+msgid "%1…, Exp.: %2"
+msgstr "%1…, Истекает: %2"
+
+msgid "0"
+msgstr "0"
+
+msgid "802.1X supplicant configuration failed"
+msgstr "Ошибка настройки заявителя 802.1X"
+
+msgid "802.1X supplicant disconnected"
+msgstr "Заявитель 802.1X отключён"
+
+msgid "802.1X supplicant failed"
+msgstr "Ошибка заявителя 802.1X"
+
+msgid "802.1X supplicant took too long to authenticate"
+msgstr "Превышено время ожидания при проверке подлинности заявителя 802.1X"
+
+msgid "A dependency of the connection failed"
+msgstr "Ошибка зависимости соединения"
+
+msgid "A mouse is connected"
+msgstr "При подключенной мыши"
+
+msgid "A secondary connection of the base connection failed"
+msgstr "Сбой вторичного подключения основого соединения"
+
+msgid "AMBER Alerts"
+msgstr "AMBER-оповещения"
+
+msgid "Aborted"
+msgstr "Отменено"
+
+msgid "Accepting jobs"
+msgstr "Принятие заданий"
+
+msgid "Active"
+msgstr "Активный"
+
+msgid "Add Manual Configuration…"
+msgstr "Настроить самостоятельно…"
+
+msgid "Add an image…"
+msgstr "Добавить изображение…"
+
+msgid "Add certificate?"
+msgstr "Добавить сертификат?"
+
+msgid "Add key?"
+msgstr "Добавить ключ?"
+
+msgid "Add pac file?"
+msgstr "Добавить pac-файл?"
+
+msgid "Add printer"
+msgstr "Добавить принтер"
+
+msgid "Address"
+msgstr "Адрес"
+
+msgid "Adjust automatically"
+msgstr "Автонастройка"
+
+msgid "After %1 minute"
+msgid_plural "After %1 minutes"
+msgstr[0] "Через %1 минуту"
+msgstr[1] "Через %1 минуты"
+msgstr[2] "Через %1 минут"
+
+msgid "After %1 second"
+msgid_plural "After %1 seconds"
+msgstr[0] "Через %1 секунду"
+msgstr[1] "Через %1 секунды"
+msgstr[2] "Через %1 секунд"
+
+msgid "After %1 seconds"
+msgid_plural "After %1 seconds"
+msgstr[0] "Через %1 секунду"
+msgstr[1] "Через %1 секунды"
+msgstr[2] "Через %1 секунд"
+
+msgid "Alerts:"
+msgstr "Уведомления:"
+
+msgid ""
+"All documents, saved games, settings, and other items will be permanently "
+"deleted from this device."
+msgstr ""
+"Все документы, сохранённые игры, настройки и другие объекты, будут "
+"безвозвратно удалены с этого устройства."
+
+msgid "All languages available:"
+msgstr "Все доступные языки:"
+
+msgid "All layouts available:"
+msgstr "Все доступные раскладки:"
+
+msgid "Allow"
+msgstr "Разрешить"
+
+msgid "Allow Launcher"
+msgstr "Разрешить открытие панели запуска"
+
+msgid "Allow quick settings"
+msgstr "Разрешить быстрые настройки"
+
+msgid "Always show the launcher"
+msgstr "Всегда отображать панель запуска"
+
+msgid "Ambiance"
+msgstr "Атмосфера"
+
+msgid "Anonymous"
+msgstr "Анонимно"
+
+msgid "Anonymous identity"
+msgstr "Анонимный идентификатор"
+
+msgid "App permissions"
+msgstr "Разрешения приложений"
+
+msgid ""
+"Apps can alert you using sounds, vibrations, notification bubbles and the "
+"Notification list."
+msgstr ""
+"Приложения могут оповещать вас с помощью всплывающих уведомлений, звуковых "
+"сигналов, вибрации и списка в области уведомлений."
+
+msgid "Apps may also request access to online accounts."
+msgstr "Приложения могут также запрашивать доступ к сетевым учётным записям."
+
+msgid "Apps that have requested access to your camera"
+msgstr "Приложения, запросившие доступ к камере"
+
+msgid "Apps that have requested access to your location"
+msgstr "Приложения, запросившие доступ информации о местоположении"
+
+msgid "Apps that have requested access to your microphone"
+msgstr "Приложения, запросившие доступ к микрофону"
+
+msgid "Apps that notify with sound"
+msgstr "Приложения, уведомляющие звуком"
+
+msgid "Apps that notify with sound:"
+msgstr "Приложения уведомляющие звуком:"
+
+msgid "Apps that notify with vibration"
+msgstr "Приложения, уведомляющие вибрацией"
+
+msgid "Apps that notify with vibrations:"
+msgstr "Приложения уведомляющие вибрацией:"
+
+msgid "Apps that you have granted access to:"
+msgstr "Приложения, которым вы предоставили доступ к:"
+
+msgid "Audio"
+msgstr "Аудиозаписи"
+
+msgid "Authenticated"
+msgstr "Авторизован"
+
+msgid "Authentication"
+msgstr "Аутентификация"
+
+msgid "Authentication token manipulation error"
+msgstr "Ошибка при операциях с маркером проверки подлинности"
+
+msgid "Auto capitalization"
+msgstr "Автокапсуляция"
+
+msgid "Auto correction"
+msgstr "Автоисправление"
+
+msgid "Auto punctuation"
+msgstr "Пунктуация (автоматически)"
+
+msgid "Automatic"
+msgstr "Автоматически"
+
+msgid "Automatically"
+msgstr "Автоматически"
+
+msgid "Back"
+msgstr "Назад"
+
+msgid "Background & Appearance"
+msgstr "Фон и внешний вид"
+
+msgid "Background image:"
+msgstr "Фоновое изображение:"
+
+msgid "Battery"
+msgstr "Батарея"
+
+msgid "Bluetooth"
+msgstr "Bluetooth"
+
+msgid "Bluetooth Pairing Authorization Request"
+msgstr "Запрос авторизации для сопряжения по Bluetooth"
+
+msgid "Bluetooth Pairing Request"
+msgstr "Запрос соединения по Bluetooth"
+
+msgid "Bluetooth address"
+msgstr "Bluetooth адрес"
+
+msgid "Bordered Black"
+msgstr "Чёрный с контуром"
+
+msgid "Bordered Grey"
+msgstr "Серый с контуром"
+
+msgid "Bordered White"
+msgstr "Белый с контуром"
+
+msgid "Both"
+msgstr "И то и другое"
+
+msgid "Brightens and dims the display to suit the surroundings."
+msgstr "Автонастройка яркости экрана в зависимости от освещённости."
+
+msgid "Brightness"
+msgstr "Яркость"
+
+msgid "Brightness & Display"
+msgstr "Яркость и экран"
+
+msgid "Bubbles"
+msgstr "Всплывающие уведомления"
+
+msgid "Build ABI"
+msgstr "Сборка ABI"
+
+msgid "By name"
+msgstr "По имени"
+
+msgid "By size"
+msgstr "По размеру"
+
+msgid "CA certificate"
+msgstr "сертификат CA"
+
+msgid "Camera"
+msgstr "Камера"
+
+msgid "Can't cancel current request (can't contact service)"
+msgstr "Текущий запрос не может быть отменён (служба недоступна)"
+
+msgid "Can't pause current request (can't contact service)"
+msgstr "Текущий запрос нельзя поставить на паузу (служба недоступна)"
+
+msgid "Cancel"
+msgstr "Отмена"
+
+msgid "Cell Broadcast Disabled"
+msgstr "Сотовая трансляция отключена"
+
+msgid "Cell Broadcast Enabled"
+msgstr "Сотовая трансляция включена"
+
+msgid "Cell Broadcast is not available"
+msgstr "Сотовая сеть недоступна"
+
+msgid "Change"
+msgstr "Изменить"
+
+msgid "Change Hotspot Setup"
+msgstr "Изменение настроек точки доступа"
+
+msgid "Change PIN…"
+msgstr "Смена PIN-кода…"
+
+msgid "Change Password/Setup…"
+msgstr "Изменение Пароля/Настроек…"
+
+msgid "Change SIM PIN"
+msgstr "Сменить ПИН-код SIM-карты"
+
+msgid "Change passcode…"
+msgstr "Изменение секретного кода…"
+
+msgid "Change passphrase…"
+msgstr "Изменить кодовую фразу…"
+
+msgid "Charge level"
+msgstr "Уровень зарядки"
+
+msgid "Charging now"
+msgstr "Заряжается"
+
+msgid "Check for updates"
+msgstr "Проверить обновления"
+
+msgid "Child abduction emergency bulletins"
+msgstr "Экстренные сообщения о похищении детей"
+
+msgid "Choose a connection"
+msgstr "Выберите подключение"
+
+msgid "Choose a display:"
+msgstr "Выберите экран:"
+
+msgid "Choose a name"
+msgstr "Выберите имя"
+
+msgid "Choose application"
+msgstr "Выберите приложение"
+
+msgid "Choose driver"
+msgstr "Выберите драйвер"
+
+msgid "Choose from"
+msgstr "Выбрать из"
+
+msgid "Choose new PIN:"
+msgstr "Введите новый ПИН-код:"
+
+msgid "Choose passcode"
+msgstr "Выбрать код"
+
+msgid "Choose passphrase"
+msgstr "Введите кодовую фразу"
+
+msgid "Choose…"
+msgstr "Выбрать…"
+
+msgid "Clear"
+msgstr "Очистить"
+
+msgid "Click or swipe on digits to unlock"
+msgstr "Нажмите или проведите пальцем по цифрам, чтобы разблокировать"
+
+msgid "Client certificate"
+msgstr "Сертификат клиента"
+
+msgid "Color model"
+msgstr "Цветовая модель"
+
+msgid "Computer"
+msgstr "Компьютер"
+
+msgid "Configured printers"
+msgstr "Настроенные принтеры"
+
+msgid "Confirm"
+msgstr "Подтвердить"
+
+msgid "Confirm PIN"
+msgstr "Подтвердите ПИН-код"
+
+msgid "Confirm new PIN:"
+msgstr "Подтвердите новый ПИН-код:"
+
+msgid "Confirm passcode"
+msgstr "Подтвердить код"
+
+msgid "Confirm passphrase"
+msgstr "Подтвердите кодовую фразу"
+
+msgid "Connect"
+msgstr "Подключиться"
+
+msgid ""
+"Connect a mouse or touchpad via USB, or use a Bluetooth device. If a "
+"Bluetooth device isn’t detected, make sure it is turned on and its batteries "
+"are charged."
+msgstr ""
+"Подключите мышь или сенсорную панель к USB порту, или воспользуйтесь "
+"устройством с возможностью подключения по Bluetooth. Если устройство "
+"Bluetooth не распознаётся системой, убедитесь что оно включено и батарея "
+"заряжена."
+
+msgid "Connect automatically when detected:"
+msgstr "Подключить автоматически после обнаружения:"
+
+msgid "Connect to Hidden Network"
+msgstr "Подключиться к скрытой сети"
+
+msgid "Connect to hidden network…"
+msgstr "Подключиться к скрытой сети…"
+
+msgid "Connected"
+msgstr "Подключено"
+
+msgid "Connected display:"
+msgstr "Подключенный экран:"
+
+msgid "Connecting"
+msgstr "Подключение"
+
+msgid "Connecting…"
+msgstr "Подключение…"
+
+msgid "Connection"
+msgstr "Идёт подключение"
+
+msgid "Content:"
+msgstr "Содержимое:"
+
+msgid "Copies"
+msgstr "Копий"
+
+msgid "Copies and pages"
+msgstr "Копии и страницы"
+
+msgid "Could not set security display hint"
+msgstr "Не удалось настроить экранную подсказку"
+
+msgid "Could not set security mode"
+msgstr "Не удалось установить режим безопасности"
+
+msgid "Current PIN:"
+msgstr "Текущий ПИН-код:"
+
+msgid "Current layouts:"
+msgstr "Текущие раскладки:"
+
+msgid "Current spelling languages:"
+msgstr "Выбранные проверяемые языки:"
+
+msgid "Current value: %1"
+msgstr "Текущее значение: %1"
+
+msgid "Cursor speed:"
+msgstr "Скорость перемещения указателя:"
+
+msgid "Custom"
+msgstr "Пользовательские"
+
+msgid "Customization Image part"
+msgstr "Настройка части Изображения"
+
+msgid "DHCP client error"
+msgstr "Ошибка клиента DHCP"
+
+msgid "DHCP client failed"
+msgstr "Ошибка клиента DHCP"
+
+msgid "DHCP client failed to start"
+msgstr "Ошибка запуска клиента DHCP"
+
+msgid "Date"
+msgstr "Дата"
+
+msgid "Default"
+msgstr "По умолчанию"
+
+msgid "Default keyboard input"
+msgstr "Ввод с клавиатуры по умолчанию"
+
+msgid "Default printer"
+msgstr "Принтер по умолчанию"
+
+msgid "Delete"
+msgstr "Удалить"
+
+msgid "Describe printer"
+msgstr "Описание принтера"
+
+msgid "Description"
+msgstr "Описание"
+
+msgid "Desktop & Launcher"
+msgstr "Рабочий стол и лаунчер"
+
+msgid "Developer Mode"
+msgstr "Режим разработчика"
+
+msgid "Developer mode"
+msgstr "Режим разработчика"
+
+msgid "Device Image part"
+msgstr "Часть изображения устройства"
+
+msgid "Device build description"
+msgstr "Описание сборки устройства"
+
+msgid "Device disconnected by user or client"
+msgstr "Устройство отключено пользователем или клиентом"
+
+msgid "Device is now managed"
+msgstr "Устройство обслуживается"
+
+msgid "Device is now unmanaged"
+msgstr "Устройство не обслуживается"
+
+msgid "Device won’t sleep during calls or video playback."
+msgstr ""
+"Устройство не будет блокироваться во время звонков или во время просмотра "
+"видео."
+
+msgid "Devices"
+msgstr "Устройства"
+
+msgid "Dialpad tones"
+msgstr "Звук клавиш"
+
+msgid "Digits passcode"
+msgstr "Цифровой код"
+
+msgid "Disabled"
+msgstr "Отключено"
+
+msgid "Disconnect"
+msgstr "Отключиться"
+
+msgid "Disconnected"
+msgstr "Отключено"
+
+msgid "Disconnecting…"
+msgstr "Отключение…"
+
+msgid "Discoverable"
+msgstr "Видимый"
+
+msgid "Discovered printers"
+msgstr "Найденные принтеры"
+
+msgid "Display brightness"
+msgstr "Яркость экрана"
+
+msgid "Display brightness:"
+msgstr "Яркость экрана:"
+
+msgid "Display language"
+msgstr "Язык системы"
+
+msgid "Display language…"
+msgstr "Выбранный язык…"
+
+msgid "Display:"
+msgstr "Экран:"
+
+msgid "Documents"
+msgstr "Документы"
+
+msgid "Don't vibrate"
+msgstr "Нет вибрации"
+
+msgid "Double-click speed:"
+msgstr "Скорость двойного щелчка:"
+
+msgid "Double-clicked"
+msgstr "Двойной щелчок"
+
+msgid "Double-tap anywhere on the screen to wake device."
+msgstr "Для пробуждения устройста дважды коснитесь экрана."
+
+msgid "Downloads"
+msgstr "Загрузки"
+
+msgid "Driver"
+msgstr "Драйвер"
+
+msgid "Duplex"
+msgstr "Спаренный"
+
+msgid "Dynamic WEP (802.1x)"
+msgstr "Динамический WEP (802.1x)"
+
+msgid "Edge drag areas width:"
+msgstr "Ширина зоны перетягивания края:"
+
+msgid "Emergency Broadcast"
+msgstr "Экстренное вещание"
+
+msgid "Enable blur effects"
+msgstr "Включить эффекты размытия"
+
+msgid "Enable dark mode for apps"
+msgstr "Включить темный режим для приложений"
+
+msgid "Enable dark mode for the environment"
+msgstr "Включить темный режим для окружения"
+
+msgid "Enable on-screen keyboard"
+msgstr "Включить экранную клавиатуру"
+
+msgid "Enable workspaces"
+msgstr "Включить рабочие пространства"
+
+msgid "Enabled"
+msgstr "Включено"
+
+msgid "Encryption"
+msgstr "Шифрование"
+
+msgid "Enter Previous SIM PIN"
+msgstr "Введите предыдущий ПИН-код SIM-карты"
+
+msgid "Enter SIM PIN"
+msgstr "Введите ПИН-код SIM-карты"
+
+msgid "Enter URI"
+msgstr "Введите URI"
+
+msgid "Enter your current location."
+msgstr "Введите ваше текущее местоположение."
+
+msgid "Entering an incorrect PIN repeatedly may lock the SIM permanently."
+msgstr ""
+"Неоднократный ввод неправильного PIN-кода может заблокировать SIM-карту "
+"навсегда."
+
+msgid "Erase & Reset All"
+msgstr "Очистить и сбросить все настройки"
+
+msgid "Erase & Reset Everything"
+msgstr "Полностью удалить и сбросить"
+
+msgid "Example"
+msgstr "Пример"
+
+msgid "Excellent"
+msgstr "Превосходно"
+
+msgid "Existing passcode"
+msgstr "Существующий код"
+
+msgid "Existing passphrase"
+msgstr "Текущая кодовая фраза"
+
+msgid "External display"
+msgstr "Внешний экран"
+
+msgid "External keyboard"
+msgstr "Внешняя клавиатура"
+
+msgid "Extreme threats"
+msgstr "Экстремальные угрозы"
+
+msgid "Extreme threats to life and property"
+msgstr "Чрезвычайные угрозы жизни и имуществу"
+
+msgid "Fair"
+msgstr "Удовлетворительно"
+
+msgid "Filter drivers"
+msgstr "Фильтр драйверов"
+
+msgid "Finger scrolling speed:"
+msgstr "Скорость прокрутки пальцем:"
+
+msgid "Fingerprint"
+msgstr "Отпечаток пальца"
+
+msgid "Fingerprint can only be used with passcode or password unlock method"
+msgstr ""
+"Отпечаток пальца может быть использован только с парольным или кодовым "
+"способом разблокировки"
+
+msgid "Flight Mode"
+msgstr "Режим полёта"
+
+msgid "Forget this device"
+msgstr "Забыть данное устройство"
+
+msgid "Forget this network"
+msgstr "Забыть данную сеть"
+
+msgid "Free space"
+msgstr "Свободное место"
+
+msgid "Fully charged"
+msgstr "Полностью заряжен"
+
+msgid "General settings"
+msgstr "Основные настройки"
+
+msgid "Gestures"
+msgstr "Жесты"
+
+msgid "Global theme settings:"
+msgstr "Глобальные настройки темы:"
+
+msgid "Good"
+msgstr "Хорошо"
+
+msgid "Hardware keyboard"
+msgstr "Клавиатура"
+
+msgid "Headphones"
+msgstr "Наушники"
+
+msgid "Headset"
+msgstr "Гарнитура"
+
+msgid "High volume can damage your hearing."
+msgstr "Высокая громкость может повредить слух."
+
+msgid "Host"
+msgstr "Хост"
+
+msgid "Hotspot"
+msgstr "Точка доступа"
+
+msgid "Hotspot name"
+msgstr "Имя точки доступа"
+
+msgid "IP address"
+msgstr "IP-адрес"
+
+msgid ""
+"IP configuration could not be reserved (no available address, timeout, etc.)"
+msgstr ""
+"Конфигурация IP не может быть зарезервирована (отсутствует доступный адрес, "
+"истекло время ожидания и т.д.)"
+
+msgid "Icon size:"
+msgstr "Размер иконки:"
+
+msgid "Identity"
+msgstr "Идентификатор"
+
+msgid "Idle"
+msgstr "Простаивает"
+
+msgid "Ignore touchpad when:"
+msgstr "Игнорировать сенсорную панель:"
+
+msgid ""
+"In Developer Mode, anyone can access, change or delete anything on this "
+"device by connecting it to another device."
+msgstr ""
+"В режиме разработчика, любой может получить доступ, изменять или удалять "
+"любые данные на вашем устройстве при его подключении к другому устройству."
+
+msgid "In order to create a hotspot, you need to turn Wi-Fi on."
+msgstr "Для создания точки доступа необходимо включить Wi-Fi."
+
+msgid "Incorrect PIN. %1 attempt remaining."
+msgid_plural "Incorrect PIN. %1 attempts remaining."
+msgstr[0] "Неверный ПИН. Осталась %1 попытка."
+msgstr[1] "Неверный ПИН. Осталось %1 попытки."
+msgstr[2] "Неверный ПИН. Осталось %1 попыток."
+
+msgid "Incorrect passcode. Try again."
+msgstr "Неправильный код. Попробуйте ещё раз."
+
+msgid "Incorrect passphrase. Try again."
+msgstr "Неправильная кодовая фраза. Попробуйте ещё раз."
+
+msgid "Inner authentication"
+msgstr "Внутренняя авторизация"
+
+msgid "Inserts a period when you tap Space twice."
+msgstr "Добавляет точку при двойном нажатии пробела."
+
+msgid "Jobs"
+msgstr "Задания"
+
+msgid "Joypad"
+msgstr "Джойстик"
+
+msgid "Just Black"
+msgstr "Только чёрный"
+
+msgid "Just Grey"
+msgstr "Только серый"
+
+msgid "Just White"
+msgstr "Только белый"
+
+msgid "Kernel"
+msgstr "Ядро"
+
+msgid "Key magnifier"
+msgstr "Лупа для кнопок"
+
+msgid "Keyboard"
+msgstr "Клавиатура"
+
+msgid "Keyboard layouts"
+msgstr "Раскладки клавиатуры"
+
+msgid "Keyboard opacity"
+msgstr "Прозрачность клавиатуры"
+
+msgid "Keyboard prompt"
+msgstr "Ввод с клавиатуры"
+
+msgid "Keyboard sound"
+msgstr "Звук экранной клавиатуры"
+
+msgid "Keyboard theme"
+msgstr "Вид клавиатуры"
+
+msgid "Keyboard vibration"
+msgstr "Вибрация клавиатуры"
+
+msgid "LEAP"
+msgstr "LEAP"
+
+msgid "Language & Text"
+msgstr "Язык и текст"
+
+msgid "Last connected"
+msgstr "Последнее подключение"
+
+msgid "Last full charge"
+msgstr "Последняя полная зарядка"
+
+msgid "Last updated"
+msgstr "Последнее обновление"
+
+msgid "Layouts and other sources"
+msgstr "Раскладки клавиатуры и другие источники"
+
+msgid "Left"
+msgstr "Левая"
+
+msgid "Legal:"
+msgstr "Правовая информация:"
+
+msgid "Let apps access this location:"
+msgstr "Разрешить приложениям доступ к местоположению:"
+
+msgid "Let the device detect your location:"
+msgstr "Разрешить устройству определять ваше местоположение:"
+
+msgid "Let this app alert me using:"
+msgstr "Разрешить этому приложению уведомлять:"
+
+msgid "Libertine"
+msgstr "Libertine"
+
+msgid "Local Raw Printer"
+msgstr "Локальный базовый принтер"
+
+msgid "Location"
+msgstr "Местоположение"
+
+msgid "Lock"
+msgstr "Заблокировать"
+
+msgid "Lock security"
+msgstr "Защита блокировки"
+
+msgid "Lock sound"
+msgstr "Звук блокировки"
+
+msgid "Lock the device when it's not in use:"
+msgstr "Блокировать устройство, когда оно не используется:"
+
+msgid "Lock when idle"
+msgstr "Блокировать в режиме ожидания"
+
+msgid "Locked"
+msgstr "Заблокировано"
+
+msgid "Locking and unlocking"
+msgstr "Блокирование и разблокирование"
+
+msgid "Manage Print Jobs"
+msgstr "Управление очередью печати"
+
+msgid "Manager Printer Jobs"
+msgstr "Управление принтером"
+
+msgid "Manually"
+msgstr "Вручную"
+
+msgid "Message sound"
+msgstr "Звук сообщения"
+
+msgid "Messages on welcome screen"
+msgstr "Сообщения на экране приветствия"
+
+msgid "Messages:"
+msgstr "Сообщения:"
+
+msgid "Microphone"
+msgstr "Микрофон"
+
+msgid "Model"
+msgstr "Модель"
+
+msgid "Modem"
+msgstr "Модем"
+
+msgid "ModemManager is unavailable"
+msgstr "ModemManager недоступен"
+
+msgid "Mouse"
+msgstr "Мышь"
+
+msgid "Mouse & Touchpad"
+msgstr "Мышь и сенсорная панель"
+
+msgid "N/A"
+msgstr "Н/Д"
+
+msgid "NFC"
+msgstr "NFC"
+
+msgid "Name"
+msgstr "Имя"
+
+msgid "Necessary firmware for the device may be missing"
+msgstr "Возможно для устройства отсутствует микропрограммное обеспечение"
+
+msgid "Network"
+msgstr "Сеть"
+
+msgid "Network details"
+msgstr "Информация о сети"
+
+msgid "Network name"
+msgstr "Имя сети"
+
+msgid "NetworkManager went to sleep"
+msgstr "NetworkManager выполняет переход в спящий режим"
+
+msgid "Never"
+msgstr "Никогда"
+
+msgid "No data available."
+msgstr "Нет данных."
+
+msgid "No devices found."
+msgstr "Устройства не найдены."
+
+msgid "No displays detected"
+msgstr "Не удалось определить экран"
+
+msgid "No images selected"
+msgstr "Изображение не выбрано"
+
+msgid "No matching place"
+msgstr "Нет подходящих результатов"
+
+msgid "No messages"
+msgstr "Нет сообщений"
+
+msgid "No more attempts allowed"
+msgstr "Превышено количество разрешённых попыток"
+
+msgid "No notifications"
+msgstr "Нет уведомлений"
+
+msgid "No reason given"
+msgstr "Причина не указана"
+
+msgid "Nokia HERE"
+msgstr "Nokia HERE"
+
+msgid "None"
+msgstr "Нет"
+
+msgid "None detected"
+msgstr "Не обнаружено"
+
+msgid "None requested"
+msgstr "Не обнаружено"
+
+msgid "Not at all"
+msgstr "Нет"
+
+msgid "Not connected"
+msgstr "Отключен"
+
+msgid "Not discoverable"
+msgstr "Скрытый"
+
+msgid "Not fast enough"
+msgstr "Недостаточно быстрый"
+
+msgid "Not possible"
+msgstr "Невозможно"
+
+msgid ""
+"Note: You may have to restart the applications for the change to take effect."
+msgstr ""
+"Примечание: Возможно, вам придется перезапустить приложения, чтобы изменения "
+"вступили в силу."
+
+msgid "Notification Bubbles"
+msgstr "Всплывающими уведомлениями"
+
+msgid "Notification List"
+msgstr "Список уведомлений"
+
+msgid "Notifications"
+msgstr "Уведомления"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "OS"
+msgstr "ОС"
+
+msgid "OS Build Details"
+msgstr "Информация об ОС"
+
+msgid "OS build number"
+msgstr "Номер сборки ОС"
+
+msgid "OS update channel"
+msgstr "Канал обновления ОС"
+
+msgid "Off"
+msgstr "Выключить"
+
+msgid "On"
+msgstr "Включено"
+
+msgid "On-screen keyboard"
+msgstr "Экранная клавиатура"
+
+msgid "On-screen keyboard theme"
+msgstr "Вид экранной клавиатуры"
+
+msgid "Online Accounts…"
+msgstr "Сетевые учётные записи…"
+
+msgid "Opaque"
+msgstr "Непрозрачный"
+
+msgid "Optional"
+msgstr "Дополнительно"
+
+msgid "Other"
+msgstr "Другой"
+
+msgid "Other Audio"
+msgstr "Другая музыка"
+
+msgid "Other apps and functions will prompt you to unlock."
+msgstr "Другие приложения предложат вам разблокировать устройство."
+
+msgid ""
+"Other devices can use your cellular data connection over the Wi-Fi network. "
+"Normal data charges apply."
+msgstr ""
+"Другие устройства могут использовать ваш мобильный трафик по Wi-Fi. Может "
+"взиматься дополнительная плата."
+
+msgid "Other files"
+msgstr "Другие файлы"
+
+msgid "Other sounds:"
+msgstr "Другие звуки:"
+
+msgid "Other vibrations"
+msgstr "Другие вибрации"
+
+msgid "PEAP version"
+msgstr "версия PEAP"
+
+msgid "PIN for '%1'"
+msgstr "ПИН для '%1'"
+
+msgid "PINs don't match. Try again."
+msgstr "ПИН-коды не совпадают. Попробуйте ещё раз."
+
+msgid "PPD file"
+msgstr "Файл PPD"
+
+msgid "Pac file"
+msgstr "Pac файл"
+
+msgid "Pac provisioning"
+msgstr "Pac подтверждение"
+
+msgid "Pair"
+msgstr "Сопряжение"
+
+msgid "Paper size"
+msgstr "Размер бумаги"
+
+msgid "Passcode"
+msgstr "Секретный код"
+
+msgid "Passcode..."
+msgstr "Секретный код..."
+
+msgid "Passphrase"
+msgstr "Пароль-фраза"
+
+msgid "Passphrase..."
+msgstr "Пароль-фраза..."
+
+msgid "Password"
+msgstr "Пароль"
+
+msgid "Personal"
+msgstr "Личное"
+
+msgid "Phone"
+msgstr "Телефон"
+
+msgid "Phone calls:"
+msgstr "Телефонные вызовы:"
+
+msgid "Pictures"
+msgstr "Изображения"
+
+msgid "Please confirm that the PIN displayed on '%1' matches this one"
+msgstr "Подтвердите, что PIN-код, отображаемый на '%1', совпадает с данным"
+
+msgid "Please enter the following PIN on %1 and press “Enter” on the keyboard:"
+msgstr ""
+"Введите нижеприведённый PIN на устройстве %1 и нажмите «Ввод» на клавиатуре:"
+
+msgid "Policies"
+msgstr "Разрешения"
+
+msgid "Poor"
+msgstr "Плохо"
+
+msgid "Preferences;Settings;"
+msgstr "Настройки;Параметры;"
+
+msgid "Preview"
+msgstr "Просмотреть"
+
+msgid "Previous networks"
+msgstr "Предыдущие сети"
+
+msgid "Primary button:"
+msgstr "Основная кнопка:"
+
+msgid "Print test page"
+msgstr "Напечатать пробную страницу"
+
+msgid "Printer"
+msgstr "Принтер"
+
+msgid "Printer name"
+msgstr "Принтер"
+
+msgid "Printer status"
+msgstr "Состояние принтера"
+
+msgid "Printing"
+msgstr "Печать"
+
+msgid "Privacy"
+msgstr "Конфиденциальность"
+
+msgid "Private key"
+msgstr "Закрытый ключ"
+
+msgid "Private key password"
+msgstr "Пароль персонального ключа"
+
+msgid "Provide PPD file"
+msgstr "Укажите файл PPD"
+
+msgid "Public key"
+msgstr "Открытый ключ"
+
+msgid "Public safety messages"
+msgstr "Сообщения об общественной безопасности"
+
+msgid "Put the device to sleep when it is not in use:"
+msgstr "Переводить устройство в спящий режим, когда он не используется:"
+
+msgid "Quality"
+msgstr "Качество"
+
+msgid "Receive emergency notifications"
+msgstr "Получать экстренные уведомления"
+
+msgid "Recommended actions to save life and property"
+msgstr "Рекомендуемые действия по спасению жизни и имущества"
+
+msgid "Refuse"
+msgstr "Отклонить"
+
+msgid "Regulatory info"
+msgstr "Правовая информация"
+
+msgid "Remember password"
+msgstr "Запомнить пароль"
+
+msgid "Remove %1 image"
+msgid_plural "Remove %1 images"
+msgstr[0] "Удалить %1 изображение"
+msgstr[1] "Удалить %1 изображения"
+msgstr[2] "Удалить %1 изображений"
+
+msgid "Remove images…"
+msgstr "Удалить изображения…"
+
+msgid "Require a password (recommended)"
+msgstr "Нужен пароль (рекомендовано)"
+
+msgid "Reset"
+msgstr "Сбросить"
+
+msgid "Reset Launcher"
+msgstr "Сброс панели запуска"
+
+msgid "Reset all system settings"
+msgstr "Сбросить все системные настройки"
+
+msgid "Reset all system settings…"
+msgstr "Сбросить все системные настройки…"
+
+msgid "Reset device"
+msgstr "Сбросить настройки устройства"
+
+msgid "Restart Now"
+msgstr "Перезапустить сейчас"
+
+msgid "Right"
+msgstr "Правая"
+
+msgid "Ringer volume:"
+msgstr "Громкость звонка:"
+
+msgid "Ringtone"
+msgstr "Рингтон"
+
+msgid "Rotation Lock"
+msgstr "Блокировка поворота экрана"
+
+msgid "SIM PIN"
+msgstr "ПИН-код SIM-карты"
+
+msgid "SSID"
+msgstr "SSID"
+
+msgid "Save"
+msgstr "Сохранить"
+
+msgid "Scanning"
+msgstr "Сканирование"
+
+msgid "Scroll with two fingers"
+msgstr "Прокрутка активируется нажатием двумя пальцами"
+
+msgid "Search"
+msgstr "Поиск"
+
+msgid "Searching…"
+msgstr "Идёт поиск…"
+
+msgid "Security"
+msgstr "Безопасность"
+
+msgid "Security & Privacy"
+msgstr "Безопасность и Конфиденциальность"
+
+msgid "Select pin code prompt:"
+msgstr "Выберите метод ввода пин-кода:"
+
+msgid "Select printer from database"
+msgstr "Выбрать принтер из БД"
+
+msgid "Serial"
+msgstr "Серийный номер"
+
+msgid "Set"
+msgstr "Выбрать"
+
+msgid "Set Up Hotspot"
+msgstr "Настройка точки доступа"
+
+msgid "Set Up Hotspot…"
+msgstr "Настройки точки доступа…"
+
+msgid "Set as Default"
+msgstr "Установить по умолчанию"
+
+msgid "Set the time and date:"
+msgstr "Установить дату и время:"
+
+msgid "Set the time zone:"
+msgstr "Установить часовой пояс:"
+
+msgid "Set time & date"
+msgstr "Установить дату и время"
+
+msgid "Severe threats"
+msgstr "Серьезные угрозы"
+
+msgid "Severe threats to life and property"
+msgstr "Серьезные угрозы жизни и имуществу"
+
+msgid "Shared"
+msgstr "Общие"
+
+msgid "Shared connection service failed"
+msgstr "Ошибка службы общедоступного соединения"
+
+msgid "Shared connection service failed to start"
+msgstr "Ошибка запуска службы общедоступного соединения"
+
+msgid ""
+"Shorter times are more secure. Device won't lock during calls or video "
+"playback."
+msgstr ""
+"Более короткое время более безопасно. Устройство не будет блокироваться во "
+"время звонков или во время просмотра видео."
+
+msgid "Show battery percentage in indicator"
+msgstr "Показывать процент заряда в индикаторе"
+
+msgid "Show charging information on lock screen"
+msgstr "Показывать информацию о зарядке на экране блокировки"
+
+msgid "Show password"
+msgstr "Показать пароль"
+
+msgid "Signal Strength"
+msgstr "Мощность сигнала"
+
+msgid "Silent Mode"
+msgstr "беззвучный режим"
+
+msgid "Sleep locks immediately"
+msgstr "Блокировка при выключении экрана"
+
+msgid "Sleep when idle"
+msgstr "Засыпать в режиме ожидания"
+
+msgid "Software licenses"
+msgstr "Лицензии на ПО"
+
+msgid "Software:"
+msgstr "Программное обеспечение:"
+
+msgid "Sorry, this license could not be displayed."
+msgstr "Извините, эта лицензия не может быть показана."
+
+msgid "Sound"
+msgstr "Звук"
+
+msgid "Sounds"
+msgstr "Звуки"
+
+msgid "Spell checking"
+msgstr "Проверка правописания"
+
+msgid "Start"
+msgstr "Начать"
+
+msgid "Starting the hotspot will turn on Wi-Fi."
+msgstr "Включение точки доступа также включит и Wi-Fi."
+
+msgid "Stats on welcome screen"
+msgstr "Статистика на домашнем экране"
+
+msgid "Status"
+msgstr "Статус"
+
+msgid "Stopped"
+msgstr "Остановлен"
+
+msgid "Storage"
+msgstr "Хранилище"
+
+msgid "Support for multiple virtual workspaces"
+msgstr "Поддержка нескольких виртуальных рабочих областей"
+
+msgid "Suru Black"
+msgstr "Suru Black"
+
+msgid "Suru Dark"
+msgstr "Suru Dark"
+
+msgid "Swipe (no security)"
+msgstr "Сдвиг (не обеспечивает безопасность)"
+
+msgid "Switch to passcode"
+msgstr "Перейти на код"
+
+msgid "Switch to passphrase"
+msgstr "Переключить на кодовую фразу"
+
+msgid "Switch to swipe"
+msgstr "Использовать сдвиг"
+
+msgid "System"
+msgstr "Система"
+
+msgid "System Reserved"
+msgstr "Зарезервировано системой"
+
+msgid "System Settings"
+msgstr "Настройки системы"
+
+msgid "System art"
+msgstr "Системное оформление"
+
+msgid "System information"
+msgstr "О системе"
+
+msgid "Tablet"
+msgstr "Планшет"
+
+msgid "Tap to click"
+msgstr "Нажатие работает как щелчок"
+
+msgid "Tap to wake"
+msgstr "Нажмите для пробуждения"
+
+msgid "Test double-click:"
+msgstr "Протестируйте двойное щелчок:"
+
+msgid "Tests"
+msgstr "Тесты"
+
+msgid "Tests alerts"
+msgstr "Тестовые уведомления"
+
+msgid "The Bluetooth connection failed or timed out"
+msgstr "Время ожидания соединения по Bluetooth истекло или произошла ошибка"
+
+msgid "The IP configuration is no longer valid"
+msgstr "Настройки IP-адреса не актуальны"
+
+msgid "The Launcher will be returned to its original contents."
+msgstr "Панель запуска будет возвращена в исходное состояние."
+
+msgid "The Wi-Fi network could not be found"
+msgstr "Не удалось обнаружить сеть Wi-Fi"
+
+msgid ""
+"The contents and layout of the launcher, and the filters in the home screen "
+"will be returned to their original settings."
+msgstr ""
+"Содержимое и раскладка панели запуска, а также фильтры на начальном экране "
+"будут восстановлены с их первоначальными настройками."
+
+msgid "The currently active background image cannot be deleted!"
+msgstr "Активное фоновое изображение не может быть удалено!"
+
+msgid ""
+"The device %1 wants to pair with this device. Do you want to allow this?"
+msgstr "%1 запрашивает разрешение на сопряжение с этим устройством. Разрешить?"
+
+msgid "The device could not be readied for configuration"
+msgstr "Не может быть считана конфигурация устройства"
+
+msgid "The device needs to restart for changes to take effect."
+msgstr "Чтобы изменения вступили в силу, необходимо перезагрузить устройство."
+
+msgid "The device was removed"
+msgstr "Устройство извлечено"
+
+msgid "The device's active connection disappeared"
+msgstr "Задействованное соединение устройства исчезло"
+
+msgid "The device's existing connection was assumed"
+msgstr "Существующее соединение устройства принято"
+
+msgid "The modem could not be found"
+msgstr "Не удалось обнаружить модем"
+
+msgid "The supplicant is now available"
+msgstr "Заявитель доступен"
+
+msgid "There are no printers configured yet."
+msgstr "Нет настроенных принтеров."
+
+msgid "There was an unknown error connecting to %1."
+msgstr "Произошла непонятная ошибка при подключении к %1."
+
+msgid "This device failed to connect to %1."
+msgstr "Не удалось подключиться к %1."
+
+msgid "This is the default printer."
+msgstr "Это принтер по умолчанию."
+
+msgid "This network is insecure!"
+msgstr "Эта сеть незащищённая!"
+
+msgid "Those passcodes don't match. Try again."
+msgstr "Коды не совпадают. Попробуйте снова."
+
+msgid "Those passphrases don't match. Try again."
+msgstr "Кодовые фразы не совпадают. Попробуйте еще раз."
+
+msgid "Time"
+msgstr "Время"
+
+msgid "Time zone"
+msgstr "Часовой пояс"
+
+msgid "Time zone:"
+msgstr "Часовой пояс:"
+
+msgid ""
+"To add a VPN configuration, download its config file or configure it "
+"manually."
+msgstr ""
+"Для добавления конфигурации VPN, скачайте файл конфигурации либо настройте "
+"VPN самостоятельно."
+
+msgid "Today"
+msgstr "Сегодня"
+
+msgid "Total storage"
+msgstr "Общий объём"
+
+msgid "Touchpad"
+msgstr "Сенсорная панель"
+
+msgid "Turn on Wi-Fi"
+msgstr "Включить Wi-Fi"
+
+msgid "Turn on lock security to restrict access when the device is locked."
+msgstr ""
+"Включите блокировку с паролем для ограничения доступа, когда устройство "
+"заблокировано."
+
+msgid "Turns on Shift to capitalize the first letter of each sentence."
+msgstr ""
+"Включает Shift для того, чтобы каждое предложение начиналось с большой буквы."
+
+msgid "Type"
+msgstr "Тип"
+
+msgid "Typing"
+msgstr "При печати"
+
+msgid "UBports Image part"
+msgstr "Часть образа Ubuntu"
+
+msgid "Ubuntu build description"
+msgstr "Описание сборки Ubuntu"
+
+msgid "Unknown"
+msgstr "Неизвестно"
+
+msgid "Unknown error"
+msgstr "Неизвестная ошибка"
+
+msgid "Unknown title"
+msgstr "Неизвестное название"
+
+msgid "Unlock"
+msgstr "Разблокировать"
+
+msgid "Unlock the device using:"
+msgstr "Разблокировать устройство с помощью:"
+
+msgctxt "Unlock with swipe"
+msgid "None"
+msgstr "Нет"
+
+msgid "Unlocked"
+msgstr "Разблокировано"
+
+msgid "Unlock…"
+msgstr "Разблокировать…"
+
+msgid "Unset"
+msgstr "Отключить"
+
+msgid "Use another display:"
+msgstr "Использовать другой экран:"
+
+msgid "Used by apps"
+msgstr "Приложения"
+
+msgid "Used by system"
+msgstr "Используется системой"
+
+msgid "User private key"
+msgstr "Персональный ключ пользователя"
+
+msgid "Username"
+msgstr "Имя пользователя"
+
+msgid ""
+"Uses GPS to detect your rough location. When off, GPS turns off to save "
+"battery."
+msgstr ""
+"Использует GPS для определения Вашего приблизительного местоположения. Когда "
+"выключено, GPS отключается для сохранения заряда батареи."
+
+msgid ""
+"Uses Wi-Fi (currently off) and GPS to detect your rough location. Turning "
+"off location detection saves battery."
+msgstr ""
+"Использует Wi-Fi (на данный момент устройство не подключено к какой-либо "
+"сети) и GPS/ГЛОНАСС для определения вашей вашего местоположения. Отключение "
+"этой опции позволяет продлить жизнь батареи."
+
+msgid ""
+"Uses Wi-Fi (currently off), cell tower locations (no current cellular "
+"connection), and GPS to detect your rough location. Turning off location "
+"detection saves battery."
+msgstr ""
+"Использует Wi-Fi (сейчас он отключен), данные сотового оператора (на данный "
+"момент соединения нет) и GPS/ГЛОНАСС для определения вашей локации. "
+"Отключение этой опции позволяет продлить жизнь батареи."
+
+msgid ""
+"Uses Wi-Fi (currently off), cell tower locations, and GPS to detect your "
+"rough location. Turning off location detection saves battery."
+msgstr ""
+"Использует Wi-Fi (сейчас он отключен), данные сотового оператора и GPS/"
+"ГЛОНАСС для определения вашей локации. Отключение этой опции позволяет "
+"продлить жизнь батареи."
+
+msgid ""
+"Uses Wi-Fi and GPS to detect your rough location. Turning off location "
+"detection saves battery."
+msgstr ""
+"Использует Wi-Fi и GPS/ГЛОНАСС для определения вашей вашего местоположения. "
+"Отключение этой опции позволяет продлить жизнь батареи."
+
+msgid ""
+"Uses Wi-Fi, cell tower locations (no current cellular connection), and GPS "
+"to detect your rough location. Turning off location detection saves battery."
+msgstr ""
+"Использует Wi-Fi, данные сотового оператора (на данный момент соединения "
+"нет) и GPS/ГЛОНАСС для определения вашей локации. Отключение этой опции "
+"позволяет продлить жизнь батареи."
+
+msgid ""
+"Uses Wi-Fi, cell tower locations, and GPS to detect your rough location. "
+"Turning off location detection saves battery."
+msgstr ""
+"Использует Wi-Fi, данные сотового оператора и GPS/ГЛОНАСС для определения "
+"вашей локации. Отключение этой опции позволяет продлить жизнь батареи."
+
+msgid "Using GPS"
+msgstr "Используя GPS"
+
+msgid ""
+"Using GPS and anonymized Wi-Fi info.<br>By selecting this option you accept "
+"the <a href='%1'>Nokia HERE terms and conditions</a>."
+msgstr ""
+"Используя GPS и анонимизированную информацию Wi-Fi.<br>Выбирая эту опцию вы "
+"соглашаетесь с <a href='%1'>Условиями использования Nokia HERE</a>."
+
+msgid "Using GPS only (less accurate)"
+msgstr "Используя только GPS (пониженная точность)"
+
+msgid ""
+"Using GPS, anonymized Wi-Fi and cellular network info.<br>By selecting this "
+"option you accept the <a href='%1'>Nokia HERE terms and conditions</a>."
+msgstr ""
+"Используя GPS, анонимизированную информацию Wi-Fi и мобильных сетей."
+"<br>Выбирая эту опцию вы соглашаетесь с <a href='%1'>Условиями использования "
+"Nokia HERE</a>."
+
+msgid "Using certificates is recommended as it increases security."
+msgstr ""
+"Для повышения уровня безопасности рекомендуется использовать сертификаты."
+
+msgid "VPN"
+msgstr "VPN"
+
+msgid "VPN reconnection required."
+msgstr "Необходимо заново установить VPN соединение."
+
+msgid "Version 0"
+msgstr "Версия 0"
+
+msgid "Version 1"
+msgstr "Версия 1"
+
+msgid "Vibrate as normal"
+msgstr "Вибрация как обычно"
+
+msgid "Vibrate in Silent Mode"
+msgstr "Вибрация при бесшумном режиме"
+
+msgid "Vibrate on ring"
+msgstr "Вибрация при звонке"
+
+msgid "Vibrate with message sound"
+msgstr "Вибрировать при получении сообщения"
+
+msgid "Vibration"
+msgstr "Вибрация"
+
+msgid "Vibrations"
+msgstr "Вибрация"
+
+msgid "Video"
+msgstr "Видео"
+
+msgid "Videos"
+msgstr "Видео"
+
+msgid "Videos and full-screen games may hide it temporarily."
+msgstr ""
+"Просмотр видео и игры, использующие весь экран, могут временно перекрывать "
+"её."
+
+msgid "Visual effects:"
+msgstr "Визуальные эффекты:"
+
+msgid "WEP"
+msgstr "WEP"
+
+msgid "WPA & WPA2 Enterprise"
+msgstr "WPA и WPA2 Enterprise"
+
+msgid "WPA & WPA2 Personal"
+msgstr "WPA и WPA2 Personal"
+
+msgid "Watch"
+msgstr "Часы"
+
+msgid "Waydroid"
+msgstr "Waydroid"
+
+msgid "Ways to reduce battery use:"
+msgstr "Способы для продления использования от батареи:"
+
+msgid "Wheel scrolling speed:"
+msgstr "Скорость прокрутки колёсиком:"
+
+msgid ""
+"When a SIM PIN is set, it must be entered to access cellular services after "
+"restarting the device or swapping the SIM."
+msgstr ""
+"Когда PIN-код SIM-карты установлен, он должен быть введен для доступа к "
+"сотовой сети после перезапуска телефона или смены SIM-карты."
+
+msgid ""
+"When hotspot is on, other devices can use your cellular data connection over "
+"Wi-Fi. Normal data charges apply."
+msgstr ""
+"Когда точка доступа включена, другие устройства могут использовать ваш "
+"мобильный трафик по Wi-Fi. Может взиматься дополнительная плата."
+
+msgid "When in Silent mode:"
+msgstr "В бесшумном режиме:"
+
+msgid "When locked:"
+msgstr "Когда заблокировано:"
+
+msgid "Wi-Fi"
+msgstr "Wi-Fi"
+
+msgid "Wi-Fi address"
+msgstr "Wi-Fi адрес"
+
+msgid "Wi-Fi is off"
+msgstr "Wi-Fi отключен"
+
+msgid "Wi-Fi used for hotspot"
+msgstr "Wi-Fi используется для точки доступа"
+
+msgid "WiFi"
+msgstr "WiFi"
+
+msgid "Wireless Display"
+msgstr "Беспроводный экран"
+
+msgid "Wireless display"
+msgstr "Беспроводный экран"
+
+msgid ""
+"With a higher value, the swipe area at the edges to trigger an action is "
+"wider. The default value is 2."
+msgstr ""
+"Чем больше значение, тем шире область полосы прокрутки для запуска действия. "
+"По умолчанию 2."
+
+msgid "Word suggestions"
+msgstr "Автозавершение"
+
+msgid "Yesterday"
+msgstr "Вчера"
+
+msgid "You need a passcode or passphrase set to use Developer Mode."
+msgstr ""
+"Вам необходимо установить код-пароль или фразу-пароль для того чтобы "
+"использовать режим Разработчика."
+
+msgid "You need to reconnect for changes to have an effect."
+msgstr ""
+"Чтобы изменения вступили в силу, необходимо заново подключиться к сети."
+
+msgid ""
+"You need to use a Bluetooth mouse or touchpad with this display. Make sure "
+"it is close to the device and its batteries are charged."
+msgstr ""
+"Для работы с экраном этого устройства вам понадобится мышь или сенсорная "
+"панель с возможностью Bluetooth подключения. Убедитесь что мышь или панель "
+"заряжены и находятся рядом с устройством."
+
+msgid "Your authentication details were incorrect"
+msgstr "Некорректные данные аутентификации"
+
+msgid "about"
+msgstr "О программе"
+
+msgid "access"
+msgstr "доступ"
+
+msgid "address"
+msgstr "адрес"
+
+msgid "adjust"
+msgstr "устанавливать"
+
+msgid "airplane"
+msgstr "автономно"
+
+msgid "allow"
+msgstr "разрешить"
+
+msgid "appearance"
+msgstr "оформление"
+
+msgid "apps"
+msgstr "приложения"
+
+msgid "art"
+msgstr "искусство"
+
+msgid "authorize"
+msgstr "авторизовать"
+
+msgid "automatic"
+msgstr "автоматический"
+
+msgid "badges"
+msgstr "значки"
+
+msgid "battery"
+msgstr "батарея"
+
+msgid "bluetooth"
+msgstr "bluetooth"
+
+msgid "brightness"
+msgstr "яркость"
+
+msgid "capitalization"
+msgstr "заглавные буквы"
+
+msgid "car"
+msgstr "автомобиль"
+
+msgid "charge"
+msgstr "заряд"
+
+msgid "clear"
+msgstr "очистить"
+
+msgid "click"
+msgstr "Нажмите"
+
+msgid "code"
+msgstr "код"
+
+msgid "collate"
+msgstr "сортировать"
+
+msgid "color"
+msgstr "цвет"
+
+msgid "colormodel"
+msgstr "Цветовая модель"
+
+msgid "communication"
+msgstr "связь"
+
+msgid "connect"
+msgstr "подключить"
+
+msgid "copies"
+msgstr "копий"
+
+msgid "correct"
+msgstr "исправить"
+
+msgid "date"
+msgstr "дата"
+
+msgid "developer"
+msgstr "разработчик"
+
+msgid "device"
+msgstr "устройство"
+
+msgid "dialpad"
+msgstr "клавиатура"
+
+msgid "disable"
+msgstr "отключить"
+
+msgid "disconnect"
+msgstr "отключить"
+
+msgid "discover"
+msgstr "обнаружить"
+
+msgid "disk"
+msgstr "диск"
+
+msgid "display"
+msgstr "отображение"
+
+msgid "edit"
+msgstr "редактировать"
+
+msgid "enable"
+msgstr "включить"
+
+msgid "erase"
+msgstr "стереть"
+
+msgid "example"
+msgstr "образец"
+
+msgid "facebook"
+msgstr "facebook"
+
+msgid "factory"
+msgstr "заводские"
+
+msgid "field"
+msgstr "поле"
+
+msgid "flickr"
+msgstr "фликр"
+
+msgid "flight"
+msgstr "полёт"
+
+msgid "gestures"
+msgstr "жесты"
+
+msgid "gmail"
+msgstr "gmail"
+
+msgid "greyscale"
+msgstr "оттенки серого"
+
+msgid "handsfree"
+msgstr "гарнитура"
+
+msgid "headset"
+msgstr "наушники"
+
+msgid "hidden"
+msgstr "скрытые"
+
+msgid "hotspot"
+msgstr "точка доступа"
+
+msgid "idle"
+msgstr "ожидание"
+
+msgid "image"
+msgstr "изображение"
+
+msgid "imei"
+msgstr "imei"
+
+msgid "info"
+msgstr "информация"
+
+msgid "ink"
+msgstr "чернила"
+
+msgid "input"
+msgstr "ввод"
+
+msgid "ip"
+msgstr "ip"
+
+msgid "keyboard"
+msgstr "клавиатура"
+
+msgid "language"
+msgstr "язык"
+
+msgid "laser"
+msgstr "лазер"
+
+msgid "launcher"
+msgstr "панель запуска"
+
+msgid "layout"
+msgstr "раскладка"
+
+msgid "licenses"
+msgstr "лицензии"
+
+msgid "lock"
+msgstr "блокировкa"
+
+msgid "mac"
+msgstr "mac"
+
+msgid "message"
+msgstr "сообщение"
+
+msgid "mouse"
+msgstr "мышь"
+
+msgid "near"
+msgstr "рядом"
+
+msgid "network"
+msgstr "сеть"
+
+msgid "nfc"
+msgstr "nfc"
+
+msgid "notifications"
+msgstr "уведомления"
+
+msgid "number"
+msgstr "номер"
+
+msgid "offline"
+msgstr "автономный режим"
+
+msgid "openvpn"
+msgstr "openvpn"
+
+msgid "orientation"
+msgstr "ориентация"
+
+msgid "pair"
+msgstr "пара"
+
+msgid "passphrase"
+msgstr "кодовая фраза"
+
+msgid "password"
+msgstr "пароль"
+
+msgid "pdf"
+msgstr "pdf"
+
+msgid "permissions"
+msgstr "разрешения"
+
+msgid "phone"
+msgstr "телефон"
+
+msgid "photo"
+msgstr "Фотографии"
+
+msgid "picture"
+msgstr "картинка"
+
+msgid "pin"
+msgstr "пин"
+
+msgid "plane"
+msgstr "самолёт"
+
+msgid "power"
+msgstr "электропитание"
+
+msgid "ppd"
+msgstr "ppd"
+
+msgid "printer"
+msgstr "принтер"
+
+msgid "printers"
+msgstr "принтеры"
+
+msgid "printing"
+msgstr "печать"
+
+msgid "privacy"
+msgstr "конфиденциальность"
+
+msgid "punctuation"
+msgstr "пунктуация"
+
+msgid "reset"
+msgstr "сброс"
+
+msgid "restore"
+msgstr "восстановить"
+
+msgid "revision"
+msgstr "пересмотреть"
+
+msgid "ringtone"
+msgstr "рингтон"
+
+msgid "rotation"
+msgstr "вращение"
+
+msgid "routing"
+msgstr "маршрутизация"
+
+msgid "sample"
+msgstr "пример"
+
+msgid "screen"
+msgstr "экран"
+
+msgid "security"
+msgstr "безопасность"
+
+msgid "serial"
+msgstr "серийный номер"
+
+msgid "silent"
+msgstr "тихий"
+
+msgid "sim"
+msgstr "sim"
+
+msgid "software"
+msgstr "программное обеспечение"
+
+msgid "sound"
+msgstr "звук"
+
+msgid "space"
+msgstr "пробел"
+
+msgid "spellcheck"
+msgstr "проверка орфографии"
+
+msgid "stereo"
+msgstr "стерео"
+
+msgid "storage"
+msgstr "хранение"
+
+msgid "suggestions"
+msgstr "предложения"
+
+msgid "swipe"
+msgstr "сдвиг"
+
+msgid "tap"
+msgstr "нажмите"
+
+msgid "test"
+msgstr "провeркa"
+
+msgid "tethering"
+msgstr "раздача"
+
+msgid "time"
+msgstr "время"
+
+msgid "timezone"
+msgstr "часовая зона"
+
+msgid "touch"
+msgstr "дотроньтесь"
+
+msgid "touchpad"
+msgstr "сенсорная панель"
+
+msgid "twitter"
+msgstr "twitter"
+
+msgid "version"
+msgstr "версия"
+
+msgid "vibrate"
+msgstr "вибрация"
+
+msgid "vibration"
+msgstr "вибро"
+
+msgid "volume"
+msgstr "громкость"
+
+msgid "vpn"
+msgstr "vpn"
+
+msgid "wallpaper"
+msgstr "обои"
+
+msgid "wifi"
+msgstr "wifi"
+
+msgid "wireless"
+msgstr "беспроводная"
+
+msgid "words"
+msgstr "слова"
+
+msgid "Date & Time"
+msgstr "Дата и время"

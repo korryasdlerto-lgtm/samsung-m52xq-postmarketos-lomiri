@@ -1,0 +1,6 @@
+#%PAM-1.0
+# m52xq (убунтутач24/003): the lock screen code of Lomiri (IntegratedLightDM calls pam_start("lightdm", user))
+auth		required	pam_unix.so nullok
+account		required	pam_unix.so
+password	required	pam_unix.so
+session		required	pam_unix.so

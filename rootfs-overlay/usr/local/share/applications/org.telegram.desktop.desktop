@@ -1,0 +1,21 @@
+[Desktop Entry]
+Name=Telegram
+Comment=New era of messaging
+TryExec=Telegram
+Exec=/usr/local/bin/m52xq-app-env env QT_SCALE_FACTOR=2.5 Telegram -- %U
+Icon=/usr/share/icons/hicolor/512x512@2/apps/org.telegram.desktop.png
+Terminal=false
+StartupWMClass=TelegramDesktop
+Type=Application
+Categories=Chat;Network;InstantMessaging;Qt;
+MimeType=x-scheme-handler/tg;x-scheme-handler/tonsite;x-scheme-handler/ton;
+Keywords=tg;chat;im;messaging;messenger;sms;tdesktop;
+Actions=quit;
+SingleMainWindow=true
+X-GNOME-UsesNotifications=true
+X-GNOME-SingleWindow=true
+
+[Desktop Action quit]
+Exec=/usr/local/bin/m52xq-app-env Telegram -quit
+Name=Quit Telegram
+Icon=application-exit

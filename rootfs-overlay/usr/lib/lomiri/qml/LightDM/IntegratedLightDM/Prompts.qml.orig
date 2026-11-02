@@ -1,0 +1,8 @@
+pragma Singleton
+import QtQuick 2.15
+
+ListModel {
+    enum Type { Message, Question, Secret, Button, Error }
+
+    function prepend(text, type) { insert(0, { "text": text, "type": type }); }
+}

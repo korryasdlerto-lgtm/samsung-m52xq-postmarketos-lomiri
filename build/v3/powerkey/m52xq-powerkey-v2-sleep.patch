@@ -1,0 +1,338 @@
+--- m52xq-powerkey.a7bbe383	2026-10-26 01:07:17.415439695 +0200
++++ m52xq-powerkey	2026-10-26 16:34:39.803121830 +0200
+@@ -15,6 +15,13 @@
+ #    orientation once (synchronously), the later PropertiesChanged of iio-sensor-proxy never arrive. We watch
+ #    iio-sensor-proxy ourselves and on every new AccelerometerOrientation send "display off, display on": qtmir stops and
+ #    starts its sensor and reads the new orientation.
++# 5) v2 (26.10): inactivity and system sleep, which PowerDevil did in the Plasma image (all night not one suspend,
++#    8 %/h, the screen never went off by itself). Touches / keys are activity; after dim-timeout the backlight dims,
++#    after activity-timeout (com.lomiri.touch.system, "Lock phone when idle" in Settings; 0 = never) lock + screen off.
++#    keepDisplayOn ("Keep screen on" in the shade, players) holds the screen on until removeDisplayOnRequest or until
++#    its client is gone. Screen off for SLEEP_AFTER s, no requestSysState, no call, no sound -> systemctl suspend. After
++#    a resume: a wake-up by Wi-Fi / mobile data stays dark (system-sleep/m52xq-wifi-dark.sh suspends again), any other
++#    (power key, call, SMS) turns the screen on.
+ import glob, math, os, struct, subprocess, threading, time
+ from gi.repository import Gio, GLib
+ 
+@@ -24,6 +31,12 @@
+ USER = 'user'
+ NAME, PATH, IFACE = 'com.canonical.Unity.Screen', '/com/canonical/Unity/Screen', 'com.canonical.Unity.Screen'
+ bus = None
++SLEEP_AFTER = 10	# s of screen off before the suspend
++RESUME_GRACE = 30	# s after a resume (m52xq-wifi-dark keeps a dark wake-up 20 s, then suspends itself)
++DIM_LEVEL = 0.3	# of the brightness
++TOUCH = 'Synaptics TCM Oncell Touchscreen'
++idle = {'last': time.monotonic(), 'dimmed': False, 'off_since': None, 'dim_t': 45, 'off_t': 60, 'gs': None,
++	'keep': {}, 'sys': {}, 'resumed': 0.0, 'next_try': 0.0, 'key_ignore': 0.0}
+ 
+ 
+ def log(msg):
+@@ -54,7 +67,7 @@
+ 
+ # reasons of the Lomiri Powerd plugin: 0 Unknown, 1 Inactivity, 2 PowerKey, 3 Proximity (on "off" Lomiri shows the lock
+ # screen unless the reason is Proximity)
+-POWERKEY, PROXIMITY = 2, 3
++INACTIVITY, POWERKEY, PROXIMITY = 1, 2, 3
+ 
+ 
+ def power_state(on, reason=POWERKEY):
+@@ -72,28 +85,37 @@
+ 		stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
+ 
+ 
+-def screen_off(touch):
++def screen_off(touch, reason=POWERKEY):
+ 	b = open(BL).read().strip()
+-	if b != '0':
++	if b != '0' and not idle['dimmed']:	# dimmed: SAVED still has the real level
+ 		write(SAVED, b)
+ 	lock()
+ 	time.sleep(0.3)	# let the lock screen draw before the backlight goes
+ 	write(BL, 0)
+ 	if touch:
+ 		write(touch + '/inhibited', 1)
+-	power_state(False)
+-	log('screen off (brightness %s)' % b)
++	idle['dimmed'] = False
++	idle['off_since'] = time.monotonic()
++	power_state(False, reason)
++	log('screen off (brightness %s, reason %d)' % (b, reason))
+ 
+ 
+-def screen_on(touch):
+-	if touch:
+-		write(touch + '/inhibited', 0)
++def saved_level():
+ 	try:
+-		b = open(SAVED).read().strip() or '180'
++		return open(SAVED).read().strip() or '180'
+ 	except OSError:
+-		b = '180'
++		return '180'
++
++
++def screen_on(touch, reason=POWERKEY):
++	if touch:
++		write(touch + '/inhibited', 0)
++	b = saved_level()
+ 	write(BL, b)
+-	power_state(True)
++	idle['last'] = time.monotonic()
++	idle['dimmed'] = False
++	idle['off_since'] = None
++	power_state(True, reason)
+ 	log('screen on (brightness %s)' % b)
+ 
+ 
+@@ -116,7 +138,11 @@
+ 				held, down = t - down, None
+ 				if held >= SHORT:
+ 					continue
+-				touch = find('Synaptics TCM Oncell Touchscreen')
++				touch = find(TOUCH)
++				# the press that woke the system: the resume has already turned the screen on
++				if time.monotonic() < idle['key_ignore'] and screen_is_on():
++					log('power key of the wake-up, screen stays on')
++					continue
+ 				if screen_is_on():
+ 					screen_off(touch)
+ 				else:
+@@ -191,7 +217,7 @@
+ 
+ 
+ def auto_step():
+-	if not bright['auto'] or bright['lux'] is None or not screen_is_on():
++	if not bright['auto'] or bright['lux'] is None or not screen_is_on() or idle['dimmed']:
+ 		return True
+ 	cur = int(open(BL).read().strip() or 0)
+ 	target = auto_target()
+@@ -213,6 +239,8 @@
+ def repowerd_call(conn, sender, path, iface, method, params, inv):
+ 	if method in ('setUserBrightness', 'userAutobrightnessEnable'):
+ 		log('%s %s' % (method, params.unpack()[0]))
++	elif method not in ('getBrightnessParams', 'listSysRequests', 'getSysRequestStats'):
++		log('%s%s from %s' % (method, params.unpack() if params else '()', sender))
+ 	if method == 'getBrightnessParams':
+ 		inv.return_value(GLib.Variant('((iiiib))', ((10, BR_MIN, BR_MAX, BR_DEFAULT, True),)))
+ 	elif method == 'setUserBrightness':
+@@ -231,14 +259,41 @@
+ 		inv.return_value(None)
+ 	elif method == 'keepDisplayOn':
+ 		bright['cookie'] += 1
++		idle['keep'][bright['cookie']] = sender
++		GLib.idle_add(activity)	# like repowerd: the request turns a dimmed screen back to full
+ 		inv.return_value(GLib.Variant('(i)', (bright['cookie'],)))
++	elif method == 'removeDisplayOnRequest':
++		idle['keep'].pop(params.unpack()[0], None)
++		idle['last'] = time.monotonic()	# the inactivity timeout starts now
++		inv.return_value(None)
++	elif method == 'setInactivityTimeouts':
++		off_t, dim_t = params.unpack()
++		if off_t >= 0:
++			idle['off_t'] = off_t
++		if dim_t >= 0:
++			idle['dim_t'] = dim_t
++		inv.return_value(None)
+ 	elif method == 'setScreenPowerMode':
++		mode, reason = params.unpack()
++		touch = find(TOUCH)
++		if mode == 'on' and not screen_is_on():
++			threading.Thread(target=screen_on, args=(touch, reason), daemon=True).start()
++		elif mode == 'off' and screen_is_on():
++			threading.Thread(target=screen_off, args=(touch, reason), daemon=True).start()
+ 		inv.return_value(GLib.Variant('(b)', (True,)))
+-	elif method in ('requestSysState', 'requestWakeup'):
++	elif method == 'requestSysState':
++		bright['cookie'] += 1
++		cookie = 'm52xq-%d' % bright['cookie']
++		idle['sys'][cookie] = (sender, params.unpack()[0])
++		inv.return_value(GLib.Variant('(s)', (cookie,)))
++	elif method == 'clearSysState':
++		idle['sys'].pop(params.unpack()[0], None)
++		inv.return_value(None)
++	elif method == 'requestWakeup':
+ 		bright['cookie'] += 1
+ 		inv.return_value(GLib.Variant('(s)', ('m52xq-%d' % bright['cookie'],)))
+ 	elif method == 'listSysRequests':
+-		inv.return_value(GLib.Variant('(a(ssi))', ([],)))
++		inv.return_value(GLib.Variant('(a(ssi))', ([(n, s, 1) for s, n in idle['sys'].values()],)))
+ 	elif method == 'getSysRequestStats':
+ 		inv.return_value(GLib.Variant('(a(ssuttt))', ([],)))
+ 	else:
+@@ -313,6 +368,161 @@
+ 	Gio.bus_watch_name_on_connection(bus, proxy, Gio.BusNameWatcherFlags.NONE, claim, None)
+ 
+ 
++def activity():
++	idle['last'] = time.monotonic()
++	if idle['dimmed'] and screen_is_on():
++		idle['dimmed'] = False
++		write(BL, saved_level())
++	return False
++
++
++def watch_activity():
++	# the touchscreen (inhibited while the screen is off) and the volume keys; the power key is keys()
++	def reader(name):
++		while True:
++			d = find(name)
++			ev = glob.glob(d + '/event*') if d else []
++			if not ev:
++				time.sleep(5)
++				continue
++			try:
++				with open('/dev/input/' + os.path.basename(ev[0]), 'rb') as f:
++					log('activity from %s' % name)
++					last = 0.0
++					while f.read(24):
++						t = time.monotonic()
++						if t - last > 1:	# one wake of the main loop per second is enough
++							last = t
++							GLib.idle_add(activity)
++			except OSError as e:
++				log('%s: %s' % (name, e))
++				time.sleep(5)
++	for name in (TOUCH, 'gpio-keys'):
++		threading.Thread(target=reader, args=(name,), daemon=True).start()
++
++
++def read_timeouts():
++	# com.lomiri.touch.system of the user (lomiri-system-settings writes it); only a change overrides setInactivityTimeouts
++	try:
++		out = subprocess.run(['su', USER, '-s', '/bin/sh', '-c', 'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus '
++				'gsettings get com.lomiri.touch.system activity-timeout; DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus '
++				'gsettings get com.lomiri.touch.system dim-timeout'], capture_output=True, text=True, timeout=10).stdout.split()
++		gs = tuple(int(v) for v in out if v.isdigit())
++	except (subprocess.SubprocessError, OSError, ValueError):
++		return True
++	if len(gs) == 2 and gs != idle['gs']:
++		idle['gs'] = gs
++		idle['off_t'], idle['dim_t'] = gs
++		log('inactivity: screen off after %d s, dim after %d s (0 = never)' % gs)
++	return True
++
++
++def in_call():
++	try:
++		v = bus.call_sync('org.freedesktop.ModemManager1', '/org/freedesktop/ModemManager1',
++			'org.freedesktop.DBus.ObjectManager', 'GetManagedObjects', None, None, Gio.DBusCallFlags.NONE, 3000, None)
++	except GLib.Error:
++		return False
++	for path, ifaces in v.unpack()[0].items():
++		call = ifaces.get('org.freedesktop.ModemManager1.Call')
++		if call and call.get('State') not in (None, 7):	# 7 = terminated
++			return True
++	return False
++
++
++def sound_running():
++	for f in glob.glob('/proc/asound/card*/pcm*/sub*/status'):
++		try:
++			if 'RUNNING' in open(f).read():
++				return True
++		except OSError:
++			pass
++	return False
++
++
++def why_awake():
++	if idle['sys']:
++		return 'requestSysState ' + ','.join(n for s, n in idle['sys'].values())
++	if in_call():
++		return 'call'
++	if sound_running():
++		return 'sound'
++	return None
++
++
++def suspend():
++	r = subprocess.run(['systemctl', 'suspend'], capture_output=True, text=True)
++	log('systemctl suspend: %s' % ('ok' if r.returncode == 0 else r.stderr.strip()))
++
++
++def tick():
++	now = time.monotonic()
++	if screen_is_on():
++		if idle['off_since'] is not None:	# on again by someone else (end of a call: proximity script)
++			idle['off_since'] = None
++			idle['last'] = now
++		t = now - idle['last']
++		dim_due = idle['dim_t'] and not idle['dimmed'] and t >= idle['dim_t']
++		off_due = idle['off_t'] and t >= idle['off_t']
++		if not (dim_due or off_due) or idle['keep'] or in_call():
++			return True
++		if dim_due and (not idle['off_t'] or idle['dim_t'] < idle['off_t']):
++			idle['dimmed'] = True
++			write(BL, max(BR_MIN, int(int(saved_level()) * DIM_LEVEL)))
++			log('dimmed after %d s' % t)
++		if off_due:
++			log('no activity for %d s' % t)
++			threading.Thread(target=screen_off, args=(find(TOUCH), INACTIVITY), daemon=True).start()
++			idle['off_since'] = now	# the thread sets it again; no second start meanwhile
++		return True
++	if idle['off_since'] is None:
++		idle['off_since'] = now	# off by someone else (call proximity, start)
++	if now - idle['off_since'] < SLEEP_AFTER or now - idle['resumed'] < RESUME_GRACE or now < idle['next_try']:
++		return True
++	why = why_awake()
++	idle['next_try'] = now + (15 if why else 60)	# a failed / inhibited suspend: try again in a minute
++	if why:
++		log('screen off, stays awake: ' + why)
++		return True
++	log('screen off for %d s, suspending' % (now - idle['off_since']))
++	threading.Thread(target=suspend, daemon=True).start()
++	return True
++
++
++def prepare_for_sleep(conn, sender, path, iface, signal, params):
++	if params.unpack()[0]:
++		log('going to sleep')
++		return
++	now = time.monotonic()
++	idle['resumed'] = now
++	idle['next_try'] = 0.0
++	irq = open('/sys/power/pm_wakeup_irq').read().strip() if os.path.exists('/sys/power/pm_wakeup_irq') else ''
++	dark = set()
++	for line in open('/proc/interrupts'):
++		f = line.split()
++		if f and f[-1] in ('ce2', 'ipa'):
++			dark.add(f[0].rstrip(':'))
++	if irq in dark:
++		log('resumed by irq %s (Wi-Fi / mobile data): screen stays off' % irq)
++		return
++	log('resumed by irq %s: screen on' % (irq or '?'))
++	idle['key_ignore'] = now + 2	# the power key event of this wake-up comes right after
++	if not screen_is_on():
++		threading.Thread(target=screen_on, args=(find(TOUCH),), daemon=True).start()
++
++
++def name_gone(conn, sender, path, iface, signal, params):
++	name, old, new = params.unpack()
++	if new or not name.startswith(':'):
++		return
++	for c in [c for c, s in idle['keep'].items() if s == name]:
++		del idle['keep'][c]
++		log('keepDisplayOn %d dropped (%s gone)' % (c, name))
++	for c in [c for c, (s, n) in idle['sys'].items() if s == name]:
++		del idle['sys'][c]
++		log('requestSysState %s dropped (%s gone)' % (c, name))
++
++
+ def heartbeat():
+ 	if screen_is_on():
+ 		power_state(True, PROXIMITY)
+@@ -328,6 +538,14 @@
+ 	watch_orientation()
+ 	repowerd()
+ 	threading.Thread(target=keys, daemon=True).start()
++	watch_activity()
++	read_timeouts()
++	GLib.timeout_add_seconds(60, read_timeouts)
++	bus.signal_subscribe('org.freedesktop.login1', 'org.freedesktop.login1.Manager', 'PrepareForSleep',
++		'/org/freedesktop/login1', None, Gio.DBusSignalFlags.NONE, prepare_for_sleep)
++	bus.signal_subscribe('org.freedesktop.DBus', 'org.freedesktop.DBus', 'NameOwnerChanged', '/org/freedesktop/DBus',
++		None, Gio.DBusSignalFlags.NONE, name_gone)
++	GLib.timeout_add_seconds(1, tick)
+ 	GLib.MainLoop().run()
+ 
+ 

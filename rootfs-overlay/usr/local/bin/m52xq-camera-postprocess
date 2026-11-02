@@ -1,0 +1,14 @@
+#!/bin/sh
+# m52xq (убунтутач24/003): post-processing of the Ubuntu Touch camera photos, the same as Megapixels' postprocess.sh does for
+# its pictures: the libcamera software ISP leaves a lot of colour noise and soft edges, the photos also came out at the
+# jpegenc default quality (85) with all that noise (23 MB at 16 MP).
+#   denoise: a half-size wavelet-denoised copy blended 70/30 with the original (keeps the edges), saturation x1.25,
+#   unsharp mask, JPEG quality 92 (EXIF incl. the rotation is kept). ~4 s for 16 MP, in the background, at low priority.
+# Started by lomiri-camera-app (CameraApplication::m52xqPostprocess) for every saved photo.
+f="$1"
+[ -f "$f" ] || exit 1
+case "$f" in *.jpg|*.jpeg|*.JPG) ;; *) exit 0 ;; esac
+tmp="${f%.*}.m52xq-pp.jpg"
+nice -n 10 magick "$f" \( +clone -resize 50% -wavelet-denoise 10% -resize 200% \) -compose blend -define compose:args=70 \
+	-composite -modulate 100,125 -unsharp 0x1.0+0.9+0.03 -quality 92 "$tmp" 2>/dev/null &&
+	[ -s "$tmp" ] && mv -f "$tmp" "$f" || rm -f "$tmp"

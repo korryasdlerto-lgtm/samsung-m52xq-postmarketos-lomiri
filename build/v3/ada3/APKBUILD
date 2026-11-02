@@ -1,0 +1,32 @@
+# m52xq (убунтутач24/003 в3): telegram-desktop 7.3.3 in edge needs so:libada.so.3, the repository has only ada 4 (libada.so.4)
+pkgname=ada3
+pkgver=3.4.4
+pkgrel=0
+pkgdesc="WHATWG-compliant URL parser, 3.x shared library (libada.so.3) for telegram-desktop"
+url="https://ada-url.github.io/ada"
+arch="aarch64"
+license="( Apache-2.0 OR MIT ) AND MPL-2.0"
+makedepends="cmake samurai"
+source="https://github.com/ada-url/ada/archive/v$pkgver/ada-$pkgver.tar.gz"
+builddir="$srcdir/ada-$pkgver"
+options="!check"
+
+build() {
+	cmake -G Ninja -B build -Wno-dev \
+		-DCMAKE_BUILD_TYPE=MinSizeRel \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DBUILD_SHARED_LIBS=ON \
+		-DCPM_LOCAL_PACKAGES_ONLY=ON \
+		-DADA_TESTING=OFF \
+		-DADA_BENCHMARKS=OFF \
+		-DADA_TOOLS=OFF \
+		-DADA_USE_SIMDUTF=OFF
+	cmake --build build
+}
+
+package() {
+	DESTDIR="$srcdir/inst" cmake --install build
+	mkdir -p "$pkgdir"/usr/lib
+	cp -a "$srcdir"/inst/usr/lib/libada.so.3* "$pkgdir"/usr/lib/
+}

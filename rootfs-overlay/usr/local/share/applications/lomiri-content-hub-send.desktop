@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Lomiri Content Hub Send
+Comment=Lomiri Content Hub Send
+Exec=/usr/local/bin/m52xq-app-env lomiri-content-hub-send %U
+Icon=
+Terminal=false
+Type=Application
+Keywords=
+OnlyShowIn=Old
+X-Lomiri-Touch=true

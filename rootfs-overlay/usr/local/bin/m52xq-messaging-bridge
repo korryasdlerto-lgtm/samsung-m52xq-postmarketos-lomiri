@@ -1,0 +1,64 @@
+#!/usr/bin/python3
+# m52xq (убунтутач24/003, в4): unread SMS stay in the Lomiri messages indicator until read (like Ubuntu Touch).
+# Spacebar only sends KNotification bubbles and does not register with the messaging menu, so this service watches
+# its database (read = 0, sentByMe = 0) and keeps one indicator entry per unread message. A tap launches Spacebar.
+import os
+import sqlite3
+import subprocess
+
+import gi
+
+gi.require_version("MessagingMenu", "1.0")
+from gi.repository import GLib, MessagingMenu
+
+DB = os.path.expanduser("~/.local/share/spacebar/messages.sqlite")
+DESKTOP = "org.kde.spacebar.desktop"
+POLL_S = 3
+
+app = MessagingMenu.App.new(DESKTOP)
+app.register()
+shown = {}  # message id -> source id
+
+
+def launch(*_args):
+    subprocess.Popen(["/usr/bin/lomiri-app-launch", "org.kde.spacebar"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+app.connect("activate-source", launch)
+
+
+def unread():
+    try:
+        db = sqlite3.connect("file:%s?mode=ro" % DB, uri=True, timeout=2)
+        rows = db.execute("SELECT id, phoneNumber, text, time FROM Messages WHERE read = 0 AND sentByMe = 0 ORDER BY time").fetchall()
+        db.close()
+        return rows
+    except sqlite3.Error:
+        return None
+
+
+def sync():
+    rows = unread()
+    if rows is None:
+        return True
+    now = {r[0]: r for r in rows}
+    for mid in [m for m in shown if m not in now]:
+        app.remove_message_by_id(mid)
+        gone = shown.pop(mid)
+        if gone not in shown.values():
+            app.remove_source(gone)
+    for mid, number, text, ms in rows:
+        if mid in shown:
+            continue
+        if not app.has_source(number):
+            app.append_source(number, None, number)
+        msg = MessagingMenu.Message.new(mid, None, number, (text or "").strip().split("\n")[0], (text or "").strip(), int(ms) * 1000)
+        msg.connect("activate", launch)
+        app.append_message(msg, number, False)
+        shown[mid] = number
+    return True
+
+
+GLib.timeout_add_seconds(POLL_S, sync)
+sync()
+GLib.MainLoop().run()

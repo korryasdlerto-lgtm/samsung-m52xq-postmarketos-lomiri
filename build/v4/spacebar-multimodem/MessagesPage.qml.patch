@@ -1,0 +1,81 @@
+--- src/contents/ui/MessagesPage.qml.orig	2026-10-27 02:49:21.754238811 +0200
++++ src/contents/ui/MessagesPage.qml	2026-10-27 04:22:37.368738894 +0200
+@@ -30,6 +30,15 @@
+     property var tapbackKeys: ["♥️", "👍" , "👎", "😂", "‼️", "❓"]
+     property real lastHeight: applicationWindow().height
+ 
++    // m52xq: dual SIM, called from the SIM prompt of the compose area
++    function doSend(sim) {
++        messageModel.setSendSim(sim)
++        messageModel.sendMessage(textarea.text, filesToList(), filesTotalSize())
++        files.clear()
++        textarea.text = ""
++        listView.positionAtEnd()
++    }
++
+     Connections {
+         target: pageStack
+         function onCurrentItemChanged () {
+@@ -629,7 +638,20 @@
+                     anchors.bottom: parent.bottom
+                     padding: Kirigami.Units.smallSpacing
+                     bottomPadding: 0
+-                    text: Qt.formatTime(model.time, Qt.DefaultLocaleShortDate)
++                    // m52xq: the state icons of the theme do not load here: the state is shown by the colour of "SIM N" (red = not delivered,
++                    // green = delivered) and in words for failed / still going out
++                    readonly property bool isFailed: model.sentByMe && model.deliveryState == MessageModel.Failed
++                    readonly property bool isSent: model.sentByMe && model.deliveryState == MessageModel.Sent
++                    readonly property string stateColor: String(isFailed ? Kirigami.Theme.negativeTextColor
++                                                              : (isSent ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.disabledTextColor))
++                    readonly property bool ru: Qt.locale().name.startsWith("ru")
++                    textFormat: Text.StyledText
++                    readonly property string simPart: model.sim > 0 ? (model.sentByMe ? "<font color=\"" + stateColor + "\"><b>SIM " + model.sim + "</b></font>" : "SIM " + model.sim) : ""
++                    readonly property string timePart: Qt.formatTime(model.time, Qt.DefaultLocaleShortDate)
++                    // sent messages: "SIM N  ·  time" (SIM before the time), received: "time  ·  SIM N"
++                    text: (model.sentByMe ? (simPart ? simPart + "  ·  " : "") + timePart : timePart + (simPart ? "  ·  " + simPart : ""))
++                          + (isFailed ? "  <font color=\"" + stateColor + "\">" + (ru ? "не доставлено" : "not delivered") + "</font>" : "")
++                          + (model.sentByMe && model.deliveryState == MessageModel.Pending ? "  ·  " + (ru ? "отправляется…" : "sending…") : "")
+                     font: Kirigami.Theme.smallFont
+                     color: Kirigami.Theme.disabledTextColor
+ 
+@@ -1124,14 +1146,26 @@
+                 }
+             }
+ 
++            // m52xq: dual SIM, ask which SIM the message goes through (like the dialer does for calls)
+             Controls.Action {
+                 id: sendAction
+-                onTriggered: {
+-                    messageModel.sendMessage(textarea.text, filesToList(), filesTotalSize())
+-                    files.clear()
+-                    textarea.text = ""
+-                    listView.positionAtEnd()
+-                }
++                onTriggered: simPrompt.open()
++            }
++
++            Kirigami.PromptDialog {
++                id: simPrompt
++                title: Qt.locale().name.startsWith("ru") ? "Выберите SIM-карту" : "Choose SIM card"
++                standardButtons: Kirigami.Dialog.Cancel
++                customFooterActions: [
++                    Kirigami.Action {
++                        text: "SIM 1"
++                        onTriggered: { simPrompt.close(); msgPage.doSend(1) }
++                    },
++                    Kirigami.Action {
++                        text: "SIM 2"
++                        onTriggered: { simPrompt.close(); msgPage.doSend(2) }
++                    }
++                ]
+             }
+ 
+             Shortcut{
+@@ -1144,6 +1178,7 @@
+                 Layout.alignment: Qt.AlignRight | Qt.AlignBottom
+                 Layout.margins: Kirigami.Units.smallSpacing
+                 icon.name: "document-send"
++                text: Qt.locale().name.startsWith("ru") ? "Отправить" : "Send"
+                 icon.width: Kirigami.Units.iconSizes.smallMedium
+                 icon.height: Kirigami.Units.iconSizes.smallMedium
+                 hoverEnabled: false

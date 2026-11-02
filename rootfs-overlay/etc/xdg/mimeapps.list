@@ -1,0 +1,4 @@
+# m52xq (убунтутач24/003): the indicators of the shade are built without url-dispatcher (libayatana-common) and open
+# "settings:///..." with xdg-open, which gave it to the default web browser (Firefox): System Settings handles it
+[Default Applications]
+x-scheme-handler/settings=lomiri-system-settings.desktop

@@ -1,0 +1,25 @@
+убунтутач24/003/в2 — правки для следующего архива Lomiri (v2). Архив v1 (postmarketos-lomiri-m52xq-mainline-v1.zip, md5 039721f4…)
+собран и залит в /data телефона 2026-10-25 00:23; v1 больше не пересобирать. Архивы собираются в корне 003.
+
+Начато, не доделано:
+1. Кнопка питания / гашение экрана: repowerd установлен в образе (2026-06), но без службы. Пробный запуск (systemd-run, 24.10):
+   кнопку питания не видит, экран гасит сам через 60 с бездействия и по кнопке не будит; LscDisplay: ActiveOutputs
+   (lomiri-system-compositor) недоступен. Нужно: разобраться, откуда repowerd берёт кнопку питания, как он включает/гасит
+   дисплей без LSC; только потом своя служба systemd.
+2. Экран блокировки с кругом: сейчас lomiri --mode=full-shell (обёртка usr/local/lib/m52xq/lomiri-bin/lomiri) и заглушка
+   LightDM (002/extra-files/usr/lib/lomiri/qml/LightDM/IntegratedLightDM) сразу шлёт loginSuccess. План: authenticate() кладёт
+   один запрос типа Button, без автоматического loginSuccess; Greeter.qml:249 и PromptList.qml сравнивают
+   LightDMService.prompts.Message/Error/Button/Secret через экземпляр — у нашей заглушки это enum (через экземпляр undefined),
+   заменить на числа; убрать --mode=full-shell. Копии исходных Greeter.qml, PromptList.qml, IntegratedLightDMImpl.qml с телефона
+   лежали в scratchpad (временные) — взять заново с телефона.
+3. Клавиатура в приложениях — проверить после починки касаний (поле адреса Morph).
+4. Автоповорот: iio-sensor-proxy замаскирован (окна приложений поворачивались и не принимали касания).
+5. (сделано) Баннер в в2/archive/META-INF: «lomiri v2», вторая строка «boot + vendor_boot + system(rootfs-lomiri_0.6.2)» вместо rootfs-plasma_6.7.5 (по команде пользователя 25.10).
+6. Перед снятием образа v2 удалить /home/user/.config/lomiri/wizard-has-run (в v1 он остался — мастер на прошитом телефоне не показался, 25.10); проверить, что Lomiri сама создаёт его после прохождения.
+7. Кнопки в шторке Lomiri как в Plasma (просьба пользователя 25.10): режим SIM (обе/SIM1/SIM2 — m52xq-sim-mode dsds|sim1|sim2), SIM мобильных данных (data1|data2), мобильные данные вкл/выкл (по умолчанию ВЫКЛ, autoconnect=false), режим полёта (/etc/m52xq/flight).
+8. Правила по умолчанию (пользователь 25.10): 2 SIM вставлены → режим dsds (обе), пока не выберут другой; данные — SIM1, пока не выберут SIM2; мобильный интернет выключен, пока не включат. На v1-телефоне сейчас: sim1 (dsds откатывается: модем в цикле «SIM identifier has changed», каждые 27 с).
+9. (сделано на телефоне и в в2) агент паролей Wi-Fi, страница Wi-Fi мастера, ModemManager r8 drop-in, раскладки ru/en, клавиатура (OrientedShell.qml), значок языка ×1.5.
+10. Агент паролей Wi-Fi (lomiri-indicator-network-secret-agent) теряет пароль: открывает уведомление с одного D-Bus-соединения (:1.240), закрывает с другого того же процесса (:1.242) → «tried to close notification … which it does not own», NM получает пустой psk, окно не закрывается. Временно: nmcli --ask dev wifi connect <SSID>. Разобрать в коде агента.
+11. iio-sensor-proxy в v1 был замаскирован (extra-003/etc/systemd/system/iio-sensor-proxy.service -> /dev/null) — в v2 НЕ маскировать (на телефоне маска снята 25.10).
+12. (сделано, в в2) экран блокировки с кругом, фон UT, кот 4800×4800, редактор снимков выкл., кнопка питания (m52xq-powerkey), автоповорот (Sensors.conf + сигнал com.canonical.Unity.Screen), звук (m52xq-audio-reprobe), x-www-browser для шторки, язык/масштаб приложений (m52xq-app-env). Осталось: заставка (plymouth без графики), клавиатура в Qt6 (Morph), сон, агент паролей Wi-Fi.
+13. (сделано) клавиатура в Qt6-приложениях (maliit из PR #125), Настройки из шторки (QT_QPA_PLATFORM).

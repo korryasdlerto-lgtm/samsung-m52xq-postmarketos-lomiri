@@ -1,0 +1,9 @@
+#!/bin/sh
+# m52xq (убунтутач24/003): the shade indicators (libayatana-common of Alpine is built without url-dispatcher) open
+# "settings:///system/..." with the first browser of "x-www-browser,google-chrome,firefox,chromium", which was Firefox.
+# This one is first in the PATH of the Lomiri session: every URL goes to the Lomiri URL dispatcher (settings: -> System
+# Settings, http(s): -> Morph, started by Lomiri like from the launcher), gio open if the dispatcher does not take it.
+for u in "$@"; do
+	gdbus call --session --dest com.lomiri.URLDispatcher --object-path /com/lomiri/URLDispatcher \
+		--method com.lomiri.URLDispatcher.DispatchURL "$u" "" >/dev/null 2>&1 || gio open "$u"
+done

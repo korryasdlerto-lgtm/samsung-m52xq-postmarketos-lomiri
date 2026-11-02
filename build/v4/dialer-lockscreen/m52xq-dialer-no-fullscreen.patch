@@ -1,0 +1,23 @@
+--- "/home/sasha/Templates/\320\274\320\260\320\271\320\275\320\273\320\260\320\271\320\275/\321\203\320\261\321\203\320\275\321\202\321\203\321\202\320\260\321\20724/003/\320\2624/build-dialer-lockscreen/Main.qml.orig"	2026-10-26 21:14:22.659218076 +0200
++++ "/home/sasha/Templates/\320\274\320\260\320\271\320\275\320\273\320\260\320\271\320\275/\321\203\320\261\321\203\320\275\321\202\321\203\321\202\320\260\321\20724/003/\320\2624/build-dialer-lockscreen/Main.qml"	2026-10-26 21:14:22.699215542 +0200
+@@ -176,7 +176,8 @@
+     minimumHeight: minimumWidth + 1
+     width: Kirigami.Settings.isMobile ? 400 : 550
+     height: Kirigami.Settings.isMobile ? 650 : 500
+-    visibility: lockscreenMode ? "FullScreen" : "Windowed"
++    // m52xq (Lomiri): a fullscreen window of this app never receives touches under Lomiri (buttons dead over the lock screen); Lomiri shows an app window on the whole screen anyway
++    visibility: "Windowed"
+     title: i18n("Phone")
+ 
+     onIsWidescreenChanged: changeNav(isWidescreen)
+--- "/home/sasha/Templates/\320\274\320\260\320\271\320\275\320\273\320\260\320\271\320\275/\321\203\320\261\321\203\320\275\321\202\321\203\321\202\320\260\321\20724/003/\320\2624/build-dialer-lockscreen/main.cpp.orig"	2026-10-26 21:14:22.667217569 +0200
++++ "/home/sasha/Templates/\320\274\320\260\320\271\320\275\320\273\320\260\320\271\320\275/\321\203\320\261\321\203\320\275\321\202\321\203\321\202\320\260\321\20724/003/\320\2624/build-dialer-lockscreen/main.cpp"	2026-10-26 21:14:22.707215035 +0200
+@@ -101,7 +101,7 @@
+     bool screenLocked = LockScreenUtils::instance()->lockscreenActive();
+     if (screenLocked) {
+         if (KWindowSystem::isPlatformWayland()) {
+-            window->setVisibility(QWindow::Visibility::FullScreen);
++            // m52xq (Lomiri): no fullscreen (touches do not reach a fullscreen window)
+             KWaylandExtras::requestXdgActivationToken(window, 0, QStringLiteral("org.kde.plasma.dialer.desktop"));
+             QObject::connect(KWaylandExtras::self(), &KWaylandExtras::xdgActivationTokenArrived, window, [window](int, const QString &token) {
+                 KWindowSystem::setCurrentXdgActivationToken(token);

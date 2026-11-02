@@ -1,0 +1,54 @@
+--- Shell.qml.v2	2026-10-26 17:03:36.347294016 +0200
++++ Shell.qml	2026-10-26 17:03:36.363290413 +0200
+@@ -195,9 +195,11 @@
+ 
+         readonly property url defaultBackground: "file://" + Constants.defaultWallpaper
+         readonly property bool hasCustomBackground: resolvedImage != defaultBackground
+-        // m52xq: in full-greeter mode (our lock screen) Lomiri used the lock screen background on the desktop too
+-        readonly property string gsettingsBackgroundPictureUri: ((shell.showingGreeter == true)
+-                                                             ||  (shell.mode === "greeter"))
++        // m52xq: in full-greeter mode (our lock screen) Lomiri used the lock screen background on the desktop too.
++        // v3: one resolver for the desktop and one for the lock screen (greeterWallpaperResolver): with one resolver
++        // switching on showingGreeter, every unlock reloaded the big desktop picture and showed the lock screen one
++        // meanwhile ("first the wrong picture")
++        readonly property string gsettingsBackgroundPictureUri: shell.mode === "greeter"
+                                                               ? backgroundGreeterSettings.backgroundPictureUri
+                                                               : backgroundShellSettings.backgroundPictureUri
+ 
+@@ -217,6 +219,24 @@
+         ]
+     }
+ 
++    ImageResolver {
++        id: greeterWallpaperResolver
++        objectName: "greeterWallpaperResolver"
++
++        readonly property bool hasCustomBackground: resolvedImage != wallpaperResolver.defaultBackground
++
++        GSettings {
++            id: greeterBackgroundSettings
++            schema.id: "com.lomiri.Shell.Greeter"
++        }
++
++        candidates: [
++            AccountsService.backgroundFile,
++            greeterBackgroundSettings.backgroundPictureUri,
++            wallpaperResolver.defaultBackground
++        ]
++    }
++
+     readonly property alias greeter: greeterLoader.item
+ 
+     readonly property var blurSource: {
+@@ -484,9 +504,9 @@
+             usageMode: shell.usageScenario
+             orientation: shell.orientation
+             forcedUnlock: wizard.active || shell.mode === "full-shell"
+-            background: wallpaperResolver.resolvedImage
++            background: greeterWallpaperResolver.resolvedImage
+             backgroundSourceSize: shell.largestScreenDimension
+-            hasCustomBackground: wallpaperResolver.hasCustomBackground
++            hasCustomBackground: greeterWallpaperResolver.hasCustomBackground
+             inputMethodRect: inputMethod.visibleRect
+             hasKeyboard: shell.hasKeyboard
+             allowFingerprint: !dialogs.hasActiveDialog &&

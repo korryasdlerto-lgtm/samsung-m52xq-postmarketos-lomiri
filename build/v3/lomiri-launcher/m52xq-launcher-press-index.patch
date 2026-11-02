@@ -1,0 +1,32 @@
+--- LauncherPanel.qml.orig	2026-10-26 01:41:44.230829951 +0200
++++ LauncherPanel.qml	2026-10-26 01:44:11.181212918 +0200
+@@ -475,8 +475,18 @@
+                         // launch things without first dragging the launcher manually. So lets read the item
+                         // angle before that happens and use that angle instead of the one we get in onClicked.
+                         property real pressedStartAngle: 0
++                        // m52xq: the same snap-back also shifts realContentY before onClicked, so the index computed
++                        // there pointed at the first items (tap on Organic Maps launched the dialer/SMS): take the
++                        // index and the item at press time too
++                        property int pressedIndex: -1
++                        property var pressedItem: null
+                         onPressed: {
+                             var clickedItem = launcherListView.itemAt(mouseX, mouseY + launcherListView.realContentY)
++                            pressedItem = clickedItem;
++                            pressedIndex = Math.floor((mouseY + launcherListView.realContentY) / launcherListView.realItemHeight);
++                            if (clickedItem === null) {
++                                return;
++                            }
+                             pressedStartAngle = clickedItem.angle;
+                             processPress(mouse);
+                         }
+@@ -486,8 +496,8 @@
+                         }
+ 
+                         onClicked: {
+-                            var index = Math.floor((mouseY + launcherListView.realContentY) / launcherListView.realItemHeight);
+-                            var clickedItem = launcherListView.itemAt(mouseX, mouseY + launcherListView.realContentY)
++                            var index = pressedIndex;
++                            var clickedItem = pressedItem;
+ 
+                             // Check if we actually clicked an item or only at the spacing in between
+                             if (clickedItem === null) {

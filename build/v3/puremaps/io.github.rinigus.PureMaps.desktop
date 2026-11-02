@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Pure Maps
+Name[ru]=Карты
+Comment=Maps and navigation
+Exec=/usr/local/bin/m52xq-app-env env QT_SCALE_FACTOR=2 pure-maps %u
+Icon=/usr/share/icons/hicolor/256x256/apps/io.github.rinigus.PureMaps.png
+Type=Application
+MimeType=x-scheme-handler/geo
+X-Ubuntu-Touch=true

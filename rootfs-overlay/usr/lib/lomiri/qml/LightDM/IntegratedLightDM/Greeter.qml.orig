@@ -1,0 +1,38 @@
+// Заглушка LightDM.IntegratedLightDM для postmarketOS (в Alpine-сборке lomiri нет нативного плагина).
+// Пароля на телефоне нет: любой запрос входа сразу считается успешным, экран блокировки снимается сам.
+pragma Singleton
+import QtQuick 2.15
+
+QtObject {
+    id: greeter
+
+    property bool active: false
+    property bool authenticated: true
+    property string authenticationUser: ""
+    property string defaultSession: "lomiri"
+    property string selectUser: ""
+    property bool promptless: true
+    property bool hasGuestAccount: false
+
+    signal showGreeter()
+    signal hideGreeter()
+    signal loginError(bool automatic)
+    signal loginSuccess(bool automatic)
+    signal requestAuthenticationUser(string user)
+
+    // сигнал отправляем не из самого вызова authenticate(), а чуть позже, чтобы не попасть в середину обработчика оболочки
+    property Timer loginTimer: Timer {
+        interval: 50
+        onTriggered: greeter.loginSuccess(false)
+    }
+
+    function authenticate(user) {
+        authenticationUser = user;
+        authenticated = true;
+        loginTimer.restart();
+    }
+    function respond(response) { loginTimer.restart(); }
+    function startSessionSync(session) { return true; }
+    function hideSessionChooser() {}
+    function showGuestAccount() {}
+}

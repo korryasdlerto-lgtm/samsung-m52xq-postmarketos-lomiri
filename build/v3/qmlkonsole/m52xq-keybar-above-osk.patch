@@ -1,0 +1,25 @@
+--- src/contents/ui/TerminalPage.qml.orig	2026-10-25 20:33:00.634974270 +0200
++++ src/contents/ui/TerminalPage.qml	2026-10-25 21:01:10.110710450 +0200
+@@ -596,8 +596,19 @@
+         }
+     }
+ 
+-    footer: TerminalKeyToolBar {
+-        visible: Kirigami.Settings.isMobile || Kirigami.Settings.tabletMode || TerminalSettings.forceModifierButtons
+-        terminal: root.currentTerminal
++    // m52xq (Lomiri): the shell does not shrink the window for the on-screen keyboard (Plasma Mobile does), so the
++    // Esc/Tab/Ctrl/arrow bar stayed under the Maliit keyboard: keep it (and the terminal) above the keyboard
++    footer: Column {
++        TerminalKeyToolBar {
++            width: parent.width
++            visible: Kirigami.Settings.isMobile || Kirigami.Settings.tabletMode || TerminalSettings.forceModifierButtons
++            terminal: root.currentTerminal
++        }
++        Item {
++            width: parent.width
++            // the Maliit rectangle is in physical pixels, QML here in logical ones: divided by QT_SCALE_FACTOR of
++            // the .desktop copy (2.5; Screen.devicePixelRatio also holds Mir's output scale and was too big)
++            height: Qt.inputMethod.visible ? Qt.inputMethod.keyboardRectangle.height / 2.5 : 0
++        }
+     }
+ }

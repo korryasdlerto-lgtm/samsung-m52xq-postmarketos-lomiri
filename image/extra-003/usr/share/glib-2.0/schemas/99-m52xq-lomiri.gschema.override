@@ -1,0 +1,16 @@
+[com.lomiri.touch.system]
+orientation-lock='PortraitOrientation'
+
+[com.lomiri.Shell]
+background-picture-uri='file:///usr/share/backgrounds/warty-final-ubuntu.png'
+
+[com.lomiri.Shell.Greeter]
+background-picture-uri='file:///usr/share/backgrounds/warty-final-ubuntu.png'
+
+# Ubuntu Touch home button (logo from 001 ubuntutouch-artwork, orange as in UT) instead of the postmarketOS one
+[com.lomiri.Shell.Launcher]
+logo-picture-uri='file:///usr/share/pixmaps/m52xq-ubuntu-touch-logo.svg'
+home-button-background-color='#E95420'
+# the launcher list by default named Ubuntu Touch apps (dialer-app, messaging-app, addressbook, click packages) that do not
+# exist here: only what is installed
+items=['application:///morph-browser.desktop', 'application:///lomiri-gallery-app.desktop', 'application:///me.gapixels.Megapixels.desktop', 'application:///lomiri-telephony-service-call.desktop', 'application:///lomiri-telephony-service-sms.desktop', 'application:///lomiri-system-settings.desktop', 'application:///lomiri-filemanager-app.desktop', 'application:///lomiri-terminal-app.desktop', 'application:///lomiri-clock-app.desktop', 'application:///lomiri-calculator-app.desktop']

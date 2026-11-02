@@ -1,0 +1,14 @@
+--- "/home/sasha/Templates/\320\274\320\260\320\271\320\275\320\273\320\260\320\271\320\275/\321\203\320\261\321\203\320\275\321\202\321\203\321\202\320\260\321\20724/003/\320\2624/build-incoming-call/notification-manager.cpp.orig"	2026-10-26 20:12:04.513172158 +0200
++++ "/home/sasha/Templates/\320\274\320\260\320\271\320\275\320\273\320\260\320\271\320\275/\321\203\320\261\321\203\320\275\321\202\321\203\321\202\320\260\321\20724/003/\320\2624/build-incoming-call/notification-manager.cpp"	2026-10-26 20:12:04.549174414 +0200
+@@ -150,6 +150,11 @@
+     // this will be used by the notification applet to show custom notification UI
+     // with swipe decision.
+     m_ringingNotification->setHint(QStringLiteral("category"), QStringLiteral("x-kde.incoming-call"));
++    // m52xq (Lomiri): the shell shows a notification with actions as a snap decision (full buttons over the lock screen,
++    // wakes the screen) only with these hints; without them it was a plain bubble: no way to answer
++    m_ringingNotification->setHint(QStringLiteral("x-lomiri-snap-decisions"), QStringLiteral("true"));
++    m_ringingNotification->setHint(QStringLiteral("x-lomiri-private-affirmative-tint"), QStringLiteral("true"));
++    m_ringingNotification->setHint(QStringLiteral("x-lomiri-private-rejection-tint"), QStringLiteral("true"));
+ 
+     auto acceptAction = m_ringingNotification->addAction(i18n("Accept"));
+     connect(acceptAction, &KNotificationAction::activated, this, [this, deviceUni, callUni] {

@@ -1,0 +1,17 @@
+[Unit]
+Description=M52XQ: on-screen keyboard bridge for text-input-v3 applications (Firefox): Wayland input_method_v2 <-> maliit-server
+After=ModemManager.service
+
+[Service]
+User=user
+Group=user
+Environment=XDG_RUNTIME_DIR=/run/user/10000
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/10000/bus
+Environment=WAYLAND_DISPLAY=wayland-0
+ExecStart=/usr/local/bin/m52xq-osk-bridge
+# the bridge exits while Lomiri / maliit-server are not up yet (no Wayland socket, no session bus): start again until they are
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

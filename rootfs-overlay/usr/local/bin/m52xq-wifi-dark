@@ -1,0 +1,33 @@
+#!/bin/sh
+# M52XQ (убунтутач24/003, в4, Lomiri): dark resume after a Wi-Fi / mobile data wake-up, started by system-sleep/m52xq-wifi-dark.sh.
+# The Plasma version of this script switched the display off with kscreen-doctor, reported user activity to KDE and suspended itself:
+# none of it exists on Lomiri. Here the kernel panel driver keeps the display off (dark_resume, set by the hook for $DARK s) and
+# m52xq-powerkey suspends again RESUME_GRACE s after the resume (it knows that the screen is off and nobody is in a call / playing).
+# This script only watches for the user: a power / volume key makes the panel driver drop dark_resume to 0 (the screen turns on): then the
+# phone stays awake and the modes saved for the sleep (modem 2G, GNSS) are given back at once.
+L=/var/log/m52xq-sleep.log
+DR=/sys/module/panel_samsung_s6e3hab_amb667an01/parameters/dark_resume
+WIN=${WIN:-20}	# like powerkey RESUME_GRACE: the window in which the apps (Telegram, ...) get what the wake-up brought
+dark0=$(cat $DR 2>/dev/null || echo 0)
+why=""
+end=$(( $(date +%s) + WIN ))
+while [ $(date +%s) -lt $end ]; do
+	# the panel driver ends the dark resume itself on a power / volume key (the flag drops to 0)
+	[ "$dark0" != 0 ] && [ "$(cat $DR 2>/dev/null)" = 0 ] && why=key && break
+	# a call (ringing / dialing / active) is flagged in gsettings by m52xq-incall-proximity: a call must turn the display on
+	if [ "$WAKE" = modem ] && [ "$(runuser -u user -- env DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/10000/bus gsettings get org.m52xq.Calls active 2>/dev/null)" = true ]; then
+		why=call; break
+	fi
+	sleep 0.5
+done
+if [ -z "$why" ]; then
+	echo "wifi-dark $(date +%T): ${WAKE:-Wi-Fi} wake-up, display kept off for $WIN s; m52xq-powerkey suspends again" >> $L
+else
+	echo "wifi-dark $(date +%T): stays awake ($why)" >> $L
+	echo 0 > $DR 2>/dev/null
+	# the modes saved before the sleep, for every active SIM (dual SIM)
+	[ -f /run/m52xq-modem-2g-active ] && /usr/lib/systemd/system-sleep/m52xq-modem-2g.sh restore
+	# the GNSS engine paused for the sleep (system-sleep/m52xq-gps-sleep.sh)
+	[ -f /run/m52xq-gps-paused ] && echo "gps: resumed, the phone stays awake ($(/usr/local/bin/m52xq-gps resume))" >> $L
+fi
+exit 0

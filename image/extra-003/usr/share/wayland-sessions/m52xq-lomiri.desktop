@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Lomiri (m52xq)
+Comment=Lomiri with the Samsung M52 settings (m52xq-start-lomiri)
+Exec=/usr/local/bin/m52xq-start-lomiri
+Type=Application
+DesktopNames=Lomiri

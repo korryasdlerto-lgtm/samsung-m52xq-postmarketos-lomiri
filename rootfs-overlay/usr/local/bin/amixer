@@ -1,0 +1,14 @@
+#!/bin/sh
+# m52xq (убунтутач24/003): alsa-utils 1.2.16 opens "-c N" as the "sysdefault:N" control, whose elements are numbered differently
+# and are not found by name ("Cannot find the given element": every `amixer -c0 cset name=...` of the voice, route and call scripts failed
+# silently, a call had no sound: "CS-Voice: no backend DAIs enabled"). The scripts of this image say "-c0": the real device instead.
+real=/usr/bin/amixer
+for a in "$@"; do
+	shift
+	case "$a" in
+	-q) set -- "$@" -q ;;
+	-c[0-9]*) set -- "$@" -D "hw:${a#-c}" ;;
+	*) set -- "$@" "$a" ;;
+	esac
+done
+exec $real "$@"

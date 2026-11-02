@@ -1,0 +1,11 @@
+#!/bin/sh
+# m52xq (убунтутач24/003): the Lomiri session tinydm starts (usr/share/wayland-sessions/m52xq-lomiri.desktop).
+# On 002 these came from m52xq-lomiri.service; here tinydm runs the session, so they are set here:
+#   PATH first: usr/local/lib/m52xq/lomiri-bin (lomiri --mode=full-shell + the indicator services; locale -a with .utf8)
+#   QML2_IMPORT_PATH: the Lomiri.SystemSettings.* modules (and our Update stub) for the first-run wizard
+#   GRID_UNIT_PX=21: the UI scale of a 6.7" 1080x2400 phone (lomiri-deviceinfo alone is not read by the UI toolkit)
+export LANG="${LANG:-C.UTF-8}"
+export PATH="/usr/local/lib/m52xq/lomiri-bin:${PATH:-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin}"
+export QML2_IMPORT_PATH="/usr/lib/lomiri-system-settings/private${QML2_IMPORT_PATH:+:$QML2_IMPORT_PATH}"
+export GRID_UNIT_PX=21
+exec /usr/bin/start_lomiri "$@"

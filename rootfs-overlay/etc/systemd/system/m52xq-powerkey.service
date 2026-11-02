@@ -1,0 +1,11 @@
+[Unit]
+Description=M52XQ: short press of the power key in Lomiri (lock + screen off / screen on)
+After=systemd-udev-settle.service
+
+[Service]
+ExecStart=/usr/local/sbin/m52xq-powerkey
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

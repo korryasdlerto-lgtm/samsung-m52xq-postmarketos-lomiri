@@ -1,0 +1,114 @@
+# Contributor: Bart Ribbers <bribbers@disroot.org>
+# Maintainer: Luca Weiss <luca@lucaweiss.eu>
+pkgname=lomiri
+pkgver=0.6.2
+pkgrel=2
+pkgdesc="A convergent desktop environment"
+# armhf: blocked by lomiri-ui-toolkit
+# riscv64: blocked by lomiri-indicator-network
+arch="all !armhf !riscv64"
+url="https://gitlab.com/ubports/development/core/lomiri"
+license="GPL-3.0-only AND LGPL-2.1-only"
+depends="
+	ayatana-indicator-keyboard
+	ayatana-indicator-session
+	biometryd-qt5
+	gsettings-desktop-schemas
+	lomiri-notifications
+	lomiri-schemas
+	lomiri-settings-components
+	lomiri-telephony-service
+	lomiri-thumbnailer
+	openrc-settingsd
+	qt5-qtbase-sqlite
+	qt5-qtgraphicaleffects
+	suru-icon-theme
+	"
+makedepends="
+	cmake
+	cmake-extras
+	dbus-test-runner
+	doxygen
+	elogind-dev
+	geonames-dev
+	gnome-desktop-dev
+	graphviz
+	gsettings-qt-qt5-dev
+	libqtdbusmock
+	libqtdbustest-qt5
+	linux-pam-dev
+	lomiri-app-launch-dev
+	lomiri-deviceinfo-dev
+	lomiri-download-manager-qt5-dev
+	lomiri-indicator-network-dev
+	lomiri-libusermetrics-dev
+	lomiri-notifications-dev
+	lomiri-system-settings
+	lomiri-ui-toolkit-qt5-dev
+	qmenumodel
+	qmenumodel-dev
+	qt5-qtbase-dev
+	qt5-qtdeclarative-dev
+	qtmir-dev
+	samurai
+	"
+checkdepends="py3-dbusmock"
+source="https://gitlab.com/ubports/development/core/lomiri/-/archive/$pkgver/lomiri-$pkgver.tar.gz
+	0001-Disable-broken-tests-due-to-dropped-mocks-from-mir-2.patch
+	0002-Add-qt5-suffix-to-search-for-Qt-tools.patch
+	0003-No-systemd.patch
+	0004-Disable-lightdm-integration.patch
+	0005-Use-Mir-2.x.patch
+	0006-Build-with-C-20.patch
+	329.patch
+	home.svg
+	"
+subpackages="$pkgname-lang"
+options="!check" # Tests fail
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DCMAKE_INSTALL_LOCALSTATEDIR=/var \
+		-DBUILD_SHARED_LIBS=ON \
+		-DCMAKE_BUILD_TYPE=None \
+		-DWITH_MIR2=ON
+	cmake --build build
+}
+
+check() {
+	ctest --test-dir build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+
+	# Replace the Ubuntu logo with Alpine
+	rm "$pkgdir"/usr/share/lomiri/Launcher/graphics/home.svg
+	install -Dm644 "$srcdir"/home.svg \
+		"$pkgdir"/usr/share/lomiri/Launcher/graphics/
+
+	# Remove various mocks and test files not wanted at runtime
+	rm "$pkgdir"/usr/bin/indicators-client
+	rm "$pkgdir"/usr/bin/lomiri-mock-indicator-service
+	rm -r "$pkgdir"/usr/lib/lomiri/qml/mocks/
+	rm -r "$pkgdir"/usr/lib/lomiri/qml/utils/Lomiri/SelfTest/
+	rm -r "$pkgdir"/usr/libexec/lomiri/tests/
+	rm "$pkgdir"/usr/libexec/lomiri/uqmlscene
+	rm "$pkgdir"/usr/share/applications/indicators-client.desktop
+	rm -r "$pkgdir"/usr/share/lomiri/mocks/
+	rm -r "$pkgdir"/usr/share/lomiri/tests/
+}
+
+sha512sums="
+752e179bfaf1de17c8216a50aa408ea1f201741be65fa2a0a6d616f65f55aeb215b89cbe293e5fcb6088420a5083bc62e416aa648fa5d40d1f7117072922d27a  lomiri-0.6.2.tar.gz
+dd2362958a2a468a64a6158440b678c62905a109ba40af78c994c5f68b19053de81c66cc99d53fc995b089e3ec842759a0e39d304f9253a7db1048f976d84417  0001-Disable-broken-tests-due-to-dropped-mocks-from-mir-2.patch
+62bad2126515daa7fcca6df3bf6e2576ff87d046d5808ef0fa73eb419cf20889271a41f817ba846046beb30a2bac0260e485dfe7b891faef5d88d2d75388bba9  0002-Add-qt5-suffix-to-search-for-Qt-tools.patch
+03838b46fac50feda260474db61ba413811570f8885077d84ac78602206f55cbcf0ad654245f3252cb085a27d6c3c6d91b7ecd117e053863498bec3d6db88889  0003-No-systemd.patch
+bb45f75cdc58c81ab448b0eef49903d448b9785c3323a575c55368e5dec46f9f762ca8ceabffe9aa2fa6c8ae9d473d06176f0612fd417f204f4a67b890aa1570  0004-Disable-lightdm-integration.patch
+37f9a75b9a2f6817e4eb876b7f70f41bcc7f9696883d9249e1901462469790c7506588e6a73ebfd7ae247ba6b5045bfb2143fda05a5c3cf9b0ba7edff8f06010  0005-Use-Mir-2.x.patch
+0ed80e66b39f6d2bf83e2b5a9718c2e2d0946f3d93a2fe30bd97db6df65792a94c04f6a85a9fbd62ffd538c0542088cd8aae046d254fd44bcdc6622824cb5abf  0006-Build-with-C-20.patch
+90b795da4f467393ab1b3b5684e35f1890d2e4ac505f4dcbfdc84762cf1acddfb337cc3d16572ae5dbc2eedadb0113d36d2f66c1dc648c7353fbff7d638ea765  329.patch
+8be30a5e7692c39ffb1948910b45d8fa69a88725df45b67ba69711281b3cf15568b9fff29a8b5b216e5e86656b5961ad7ef9eb0e87c007215e012c3a663045b7  home.svg
+"

@@ -1,0 +1,33 @@
+#!/bin/sh
+# Только для службы m52xq-lomiri (каталог стоит первым в её PATH, start_lomiri вызывает "lomiri" по PATH).
+# 1) режим full-greeter (v2): экран блокировки с часами, разблокировка свайпом (заглушка LightDM отдаёт запрос-кнопку);
+#    раньше full-shell — блокировка снималась сама;
+# 2) QT_QPA_PLATFORM=wayland для приложений и служб, которые запускает Lomiri (иначе Qt берёт xcb и падает);
+# 3) службы индикаторов верхней панели: в Alpine они запускаются автозапуском XDG, а здесь его нет.
+dbus-update-activation-environment QT_QPA_PLATFORM=wayland GRID_UNIT_PX="$GRID_UNIT_PX"
+(
+    sleep 4
+    for n in power datetime session messages bluetooth display sound notifications; do
+        [ -x /usr/libexec/ayatana-indicator-$n/ayatana-indicator-$n-service ] &&
+            /usr/libexec/ayatana-indicator-$n/ayatana-indicator-$n-service &
+    done
+    # the network indicator (Wi-Fi list of the shade and of the first-run wizard): on v2's first boot nothing
+    # D-Bus-activated it (com.lomiri.connectivity1) before the wizard, so the wizard showed no networks
+    pgrep -u "$(id -u)" -f lomiri-indicator-network-service >/dev/null ||
+        /usr/libexec/lomiri-indicator-network/lomiri-indicator-network-service &
+    # calls and SMS (plasma-dialer, spacebar): their daemons come with XDG autostart files, which nothing runs here
+    for d in modem-daemon kde-telephony-daemon spacebar-daemon; do
+        [ -x /usr/lib/libexec/$d ] && ! pgrep -u "$(id -u)" -x $d >/dev/null && /usr/lib/libexec/$d &
+    done
+    # location indicator (and the Settings > Security > Location page, which reads its "location-detection-enabled"
+    # action): it is not an ayatana-indicator-* service, so the loop above never started it
+    [ -x /usr/libexec/lomiri-indicator-location/lomiri-indicator-location-service ] &&
+        ! pgrep -u "$(id -u)" -f lomiri-indicator-location-service >/dev/null &&
+        /usr/libexec/lomiri-indicator-location/lomiri-indicator-location-service &
+    # SIM cards / signal / operator in the panel: lomiri-indicator-network sees only oFono modems, this image runs ModemManager
+    pgrep -u "$(id -u)" -f m52xq-indicator-sim >/dev/null || /usr/local/sbin/m52xq-indicator-sim &
+    # the Wi-Fi password dialog: NetworkManager asks this agent for the secrets ("no secrets: No agents were available")
+    /usr/libexec/lomiri-indicator-network/lomiri-indicator-network-secret-agent &
+    wait
+) >/dev/null 2>&1 &
+exec /usr/bin/lomiri --mode=full-greeter "$@"

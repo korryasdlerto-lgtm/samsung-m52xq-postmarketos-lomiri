@@ -1,0 +1,16 @@
+# убунтутач24/003: Alpine ships the D-Bus activation file of com.lomiri.URLDispatcher with SystemdService=lomiri-url-dispatcher.service but no such systemd user unit:
+# dbus-broker then fails every activation ("unknown unit"), e.g. indicator menu items (url-dispatcher) did nothing
+[Unit]
+Description=com.lomiri.URLDispatcher (D-Bus activated)
+PartOf=graphical-session.target
+
+[Service]
+# the handler database (~/.cache/lomiri-url-dispatcher) is filled by lomiri-update-directory: on Ubuntu Touch a separate unit
+# does it, Alpine has none ("URL 'settings:///...' is not handleable")
+ExecStartPre=-/usr/libexec/lomiri-url-dispatcher/lomiri-update-directory /usr/share/lomiri-url-dispatcher/urls/
+# the apps it starts (System Settings from the shade) need Wayland; started before Lomiri exported QT_QPA_PLATFORM
+# into the session they came up with xcb and aborted ("no Qt platform plugin could be initialized")
+Environment=QT_QPA_PLATFORM=wayland WAYLAND_DISPLAY=wayland-0
+Type=dbus
+BusName=com.lomiri.URLDispatcher
+ExecStart=/usr/libexec/lomiri-url-dispatcher/lomiri-url-dispatcher

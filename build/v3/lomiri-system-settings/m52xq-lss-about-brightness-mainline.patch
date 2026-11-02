@@ -1,0 +1,109 @@
+diff -ruN a/lomiri-system-settings-1.5.0/CMakeLists.txt b/lomiri-system-settings-1.5.0/CMakeLists.txt
+--- a/lomiri-system-settings-1.5.0/CMakeLists.txt	2026-10-13 12:55:28.000000000 +0300
++++ b/lomiri-system-settings-1.5.0/CMakeLists.txt	2026-10-26 01:11:20.731701968 +0200
+@@ -46,6 +46,9 @@
+ pkg_search_module(GEONAMES REQUIRED IMPORTED_TARGET geonames)
+ pkg_search_module(ICU REQUIRED IMPORTED_TARGET icu-i18n)
+ pkg_search_module(ANDR_PROP IMPORTED_TARGET libandroid-properties)
++if(ANDR_PROP_FOUND)
++    add_definitions(-DHAVE_ANDROID_PROPERTIES)	# m52xq: else About / Brightness use the replacements
++endif()
+ pkg_search_module(CLICK REQUIRED IMPORTED_TARGET click-0.4)
+ pkg_check_modules(QTGSETTINGS REQUIRED IMPORTED_TARGET gsettings-qt)
+ if(ENABLE_LIBDEVICEINFO)
+diff -ruN a/lomiri-system-settings-1.5.0/plugins/about/storageabout.cpp b/lomiri-system-settings-1.5.0/plugins/about/storageabout.cpp
+--- a/lomiri-system-settings-1.5.0/plugins/about/storageabout.cpp	2026-10-13 12:55:28.000000000 +0300
++++ b/lomiri-system-settings-1.5.0/plugins/about/storageabout.cpp	2026-10-26 01:26:56.404803265 +0200
+@@ -43,7 +43,35 @@
+ #include <QtGlobal>
+ #include <QProcess>
+ #include <QVariant>
++#ifdef HAVE_ANDROID_PROPERTIES
+ #include <hybris/properties/properties.h>
++#else
++/* m52xq: no Android properties on a mainline kernel: the device tree model / nothing instead */
++#include <paths.h>
++#ifndef _PATH_MOUNTED
++#define _PATH_MOUNTED "/proc/mounts"	/* came with the hybris headers before */
++#endif
++#include <QFile>
++#define PROP_VALUE_MAX 92
++static void property_get(const char *key, char *value, const char *def)
++{
++    QByteArray v(def);
++    if (!strcmp(key, "ro.product.model") || !strcmp(key, "ro.product.manufacturer")) {
++        QFile f(QStringLiteral("/proc/device-tree/model"));	/* "Samsung Galaxy M52 5G" */
++        if (f.open(QIODevice::ReadOnly)) {
++            QByteArray m = f.readAll().trimmed();
++            while (m.endsWith('\0'))
++                m.chop(1);
++            int sp = m.indexOf(' ');
++            if (!strcmp(key, "ro.product.manufacturer"))
++                v = sp > 0 ? m.left(sp) : m;
++            else
++                v = sp > 0 ? m.mid(sp + 1) : QByteArray();
++        }
++    }
++    qstrncpy(value, v.constData(), PROP_VALUE_MAX);
++}
++#endif
+ #include <QDBusReply>
+ 
+ namespace {
+diff -ruN a/lomiri-system-settings-1.5.0/plugins/brightness/brightness.cpp b/lomiri-system-settings-1.5.0/plugins/brightness/brightness.cpp
+--- a/lomiri-system-settings-1.5.0/plugins/brightness/brightness.cpp	2026-10-13 12:55:28.000000000 +0300
++++ b/lomiri-system-settings-1.5.0/plugins/brightness/brightness.cpp	2026-10-26 01:11:10.495186509 +0200
+@@ -19,7 +19,9 @@
+  */
+ 
+ #include "brightness.h"
++#ifdef HAVE_ANDROID_PROPERTIES
+ #include <hybris/properties/properties.h>
++#endif
+ 
+ #include <QDBusArgument>
+ #include <QDBusReply>
+@@ -94,7 +96,11 @@
+ 
+ bool Brightness::getWidiSupported() const 
+ {
++#ifdef HAVE_ANDROID_PROPERTIES
+     char widi[PROP_VALUE_MAX];
+     property_get("ubuntu.widi.supported", widi, "0");
+     return (strcmp(widi, "0") > 0);
++#else
++    return false;	/* m52xq: no Android properties, no wireless display */
++#endif
+ }
+diff -ruN a/lomiri-system-settings-1.5.0/plugins/brightness/plugin/brightness-plugin.cpp b/lomiri-system-settings-1.5.0/plugins/brightness/plugin/brightness-plugin.cpp
+--- a/lomiri-system-settings-1.5.0/plugins/brightness/plugin/brightness-plugin.cpp	2026-10-13 12:55:28.000000000 +0300
++++ b/lomiri-system-settings-1.5.0/plugins/brightness/plugin/brightness-plugin.cpp	2026-10-26 01:22:22.477012300 +0200
+@@ -19,7 +19,14 @@
+  */
+ 
+ #include "brightness-plugin.h"
++#ifdef HAVE_ANDROID_PROPERTIES
+ #include <hybris/properties/properties.h>
++#else
++/* m52xq: no Android properties (mainline kernel): no wireless display */
++#include <cstring>
++#define PROP_VALUE_MAX 92
++static void property_get(const char *, char *value, const char *def) { strncpy(value, def, PROP_VALUE_MAX - 1); }
++#endif
+ 
+ #include <QDebug>
+ #include <QDBusInterface>
+diff -ruN a/lomiri-system-settings-1.5.0/plugins/CMakeLists.txt b/lomiri-system-settings-1.5.0/plugins/CMakeLists.txt
+--- a/lomiri-system-settings-1.5.0/plugins/CMakeLists.txt	2026-10-13 12:55:28.000000000 +0300
++++ b/lomiri-system-settings-1.5.0/plugins/CMakeLists.txt	2026-10-26 01:10:59.698642830 +0200
+@@ -1,6 +1,8 @@
++# m52xq: About and Brightness also without libandroid-properties (mainline kernel, no Halium): their only use of it is
++# a few Android properties, answered from the device tree / "no" instead (see brightness.cpp, storageabout.cpp)
++add_subdirectory(about)
++add_subdirectory(brightness)
+ if(ANDR_PROP_FOUND)
+-    add_subdirectory(about)
+-    add_subdirectory(brightness)
+     add_subdirectory(nfc)
+ endif()
+ add_subdirectory(background)

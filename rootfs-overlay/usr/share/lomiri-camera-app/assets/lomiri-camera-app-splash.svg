@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg style="enable-background:new" xmlns="http://www.w3.org/2000/svg" height="1024" width="1024" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1024 1024">
+ <defs>
+  <radialGradient id="b" cx="-256" gradientUnits="userSpaceOnUse" cy="-256.2" r="96" gradientTransform="matrix(0 -1.417 -1.417 0 149.2 149.3)">
+   <stop stop-opacity="0" offset="0"/>
+   <stop stop-opacity="0" offset=".8987"/>
+   <stop stop-opacity=".2617" offset=".9493"/>
+   <stop offset="1"/>
+  </radialGradient>
+  <radialGradient id="a" gradientUnits="userSpaceOnUse" cy="-512" cx="-513.9" gradientTransform="matrix(1.05 0 0 1.05 25.83 25.74)" r="172.2">
+   <stop stop-opacity="0" offset="0"/>
+   <stop offset=".5048"/>
+   <stop stop-opacity="0" offset="1"/>
+  </radialGradient>
+ </defs>
+ <circle style="color:#000000;enable-background:accumulate" cy="349.3" cx="674.7" r="11.35" fill="#df382c"/>
+ <circle opacity=".1" style="color:#000000;enable-background:accumulate" fill-opacity=".9961" cx="-258" transform="matrix(0 -.9459 -.9459 0 269.9 269.9)" cy="-256" r="176"/>
+ <circle opacity=".4" style="color:#000000;enable-background:accumulate" cx="-513.9" transform="matrix(0,-1,-1,0,0,0)" cy="-512" r="180.9" fill="url(#a)"/>
+ <circle style="color:#000000;enable-background:accumulate" transform="matrix(0,-1,-1,0,0,0)" cy="-512" cx="-512" r="166.5" fill="#fcfcfc"/>
+ <circle style="color:#000000;enable-background:accumulate" cx="-512" transform="matrix(0,-1,-1,0,0,0)" cy="-512.2" r="136" fill="#b6e2f3"/>
+ <path opacity=".05" style="color:#000000;enable-background:accumulate" d="m512.2 376a136 136 0 0 0 -136 136 136 136 0 0 0 136 136 136 136 0 0 0 136 -136 136 136 0 0 0 -136 -136zm0 48.66a87.35 87.35 0 0 1 87.35 87.35 87.35 87.35 0 0 1 -87.35 87.35 87.35 87.35 0 0 1 -87.35 -87.35 87.35 87.35 0 0 1 87.35 -87.35z" fill="url(#b)"/>
+ <circle style="color:#000000;enable-background:accumulate" cx="-512" transform="matrix(0,-1,-1,0,0,0)" cy="-512.2" r="104.8" fill="#369ad4"/>
+ <circle style="color:#000000;enable-background:accumulate" cx="-512" transform="matrix(0,-1,-1,0,0,0)" cy="-512.2" r="67.91" fill="#1c629d"/>
+ <circle style="color:#000000;enable-background:accumulate" transform="matrix(0,-1,-1,0,0,0)" cy="-512.2" cx="-512" r="37.84" fill="#10395c"/>
+ <circle opacity=".2330" style="color:#000000;enable-background:accumulate" cx="553" cy="471.8" r="48.66" fill="#fff"/>
+</svg>

@@ -1,0 +1,15 @@
+#!/bin/sh
+# Только для службы m52xq-lomiri (каталог стоит первым в её PATH, start_lomiri вызывает "lomiri" по PATH).
+# 1) режим full-shell: экран блокировки снимается сам (пароля на телефоне нет, настоящего LightDM тоже нет);
+# 2) QT_QPA_PLATFORM=wayland для приложений и служб, которые запускает Lomiri (иначе Qt берёт xcb и падает);
+# 3) службы индикаторов верхней панели: в Alpine они запускаются автозапуском XDG, а здесь его нет.
+dbus-update-activation-environment QT_QPA_PLATFORM=wayland GRID_UNIT_PX="$GRID_UNIT_PX"
+(
+    sleep 4
+    for n in power datetime session messages bluetooth display sound notifications; do
+        [ -x /usr/libexec/ayatana-indicator-$n/ayatana-indicator-$n-service ] &&
+            /usr/libexec/ayatana-indicator-$n/ayatana-indicator-$n-service &
+    done
+    wait
+) >/dev/null 2>&1 &
+exec /usr/bin/lomiri --mode=full-shell "$@"

@@ -1,0 +1,143 @@
+#!/usr/bin/env python3
+# M52XQ (убунтутач24/003, в4): ringtone and vibration for an incoming modem call. On Ubuntu Touch the notification service plays the
+# "Ringtone" setting; here the Plasma dialer's KNotification asks KDE for the sound ("ringing" event) and nothing plays. While a ModemManager
+# call is ringing-in this plays a ringtone from /usr/share/sounds/lomiri/ringtones (the user's PulseAudio, loop, at the Notify volume) and
+# vibrates with hfd-service; both stop when the call is answered, rejected, missed, or the power / volume key is pressed.
+import glob
+import os
+import random
+import signal
+import subprocess
+import sys
+import time
+
+import gi
+from gi.repository import Gio, GLib
+
+MM = 'org.freedesktop.ModemManager1'
+RINGING_IN = 3
+RING_DIRS = ['/usr/share/sounds/lomiri/ringtones', '/usr/share/sounds/ubuntu/ringtones']
+PULSE_ENV = {'PULSE_SERVER': 'unix:/run/user/10000/pulse/native', 'XDG_RUNTIME_DIR': '/run/user/10000'}
+CONF = '/etc/m52xq-ringtone.conf'	# optional: RINGTONE=/path/file.ogg, VIBRATE=0|1
+VIBRATE_PATTERN = (700, 600)	# ms on, ms off
+
+
+def log(msg):
+    print('m52xq-ringtone: ' + msg, flush=True)
+
+
+def conf():
+    c = {'RINGTONE': '', 'VIBRATE': '1'}
+    try:
+        for line in open(CONF):
+            if '=' in line and not line.lstrip().startswith('#'):
+                k, v = line.strip().split('=', 1)
+                c[k.strip()] = v.strip()
+    except OSError:
+        pass
+    return c
+
+
+def pick_ringtone(c):
+    if c['RINGTONE'] and os.path.exists(c['RINGTONE']):
+        return c['RINGTONE']
+    for d in RING_DIRS:
+        files = sorted(glob.glob(d + '/*.ogg') + glob.glob(d + '/*.oga') + glob.glob(d + '/*.wav'))
+        for pref in ('Celestial', 'Ubuntu', 'Marimbach'):
+            for f in files:
+                if pref.lower() in os.path.basename(f).lower():
+                    return f
+        if files:
+            return files[0]
+    return ''
+
+
+class Ringer:
+    def __init__(self):
+        self.bus = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
+        self.proc = None
+        self.vib_id = 0
+        self.ringing = False
+
+    def ringing_now(self):
+        try:
+            res = self.bus.call_sync(MM, '/org/freedesktop/ModemManager1', 'org.freedesktop.DBus.ObjectManager', 'GetManagedObjects',
+                                     None, GLib.VariantType('(a{oa{sa{sv}}})'), Gio.DBusCallFlags.NONE, 2000, None)
+        except GLib.Error:
+            return False
+        for ifaces in res.unpack()[0].values():
+            voice = ifaces.get(MM + '.Modem.Voice')
+            if not voice:
+                continue
+            for path in voice.get('Calls', []):
+                try:
+                    st = self.bus.call_sync(MM, path, 'org.freedesktop.DBus.Properties', 'Get',
+                                            GLib.Variant('(ss)', (MM + '.Call', 'State')), GLib.VariantType('(v)'),
+                                            Gio.DBusCallFlags.NONE, 2000, None)
+                except GLib.Error:
+                    continue
+                if st.unpack()[0] == RINGING_IN:
+                    return True
+        return False
+
+    def start(self):
+        c = conf()
+        f = pick_ringtone(c)
+        if f:
+            log('ringing: ' + f)
+            # paplay loops only by restarting: a shell loop keeps it going until killed
+            self.proc = subprocess.Popen(['/bin/sh', '-c', 'while :; do paplay "$0" || sleep 1; done', f],
+                                         env=dict(os.environ, **PULSE_ENV), preexec_fn=os.setsid,
+                                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        else:
+            log('ringing: no ringtone file found')
+        if c['VIBRATE'] != '0':
+            self.vibrate()
+            self.vib_id = GLib.timeout_add(sum(VIBRATE_PATTERN), self.vibrate)
+
+    def vibrate(self):
+        try:
+            self.bus.call_sync('com.lomiri.hfd', '/com/lomiri/hfd', 'com.lomiri.hfd.Vibrator', 'vibrate',
+                               GLib.Variant('(u)', (VIBRATE_PATTERN[0],)), None, Gio.DBusCallFlags.NONE, 1000, None)
+        except GLib.Error:
+            pass
+        return True
+
+    def stop(self):
+        if self.vib_id:
+            GLib.source_remove(self.vib_id)
+            self.vib_id = 0
+        if self.proc:
+            try:
+                os.killpg(self.proc.pid, signal.SIGTERM)
+            except OSError:
+                pass
+            self.proc = None
+        # an already started paplay is a child of the shell: the process group kill covers it
+        log('stopped')
+
+    def recheck(self, *_):
+        now = self.ringing_now()
+        if now and not self.ringing:
+            self.ringing = True
+            self.start()
+        elif not now and self.ringing:
+            self.ringing = False
+            self.stop()
+        return False
+
+
+def main():
+    r = Ringer()
+    for iface, member in (('org.freedesktop.ModemManager1.Modem.Voice', 'CallAdded'),
+                          ('org.freedesktop.ModemManager1.Modem.Voice', 'CallDeleted'),
+                          ('org.freedesktop.ModemManager1.Call', 'StateChanged')):
+        r.bus.signal_subscribe(MM, iface, member, None, None, Gio.DBusSignalFlags.NONE,
+                               lambda *a: GLib.idle_add(r.recheck), None)
+    GLib.timeout_add_seconds(5, lambda: (r.recheck(), True)[1])
+    GLib.idle_add(r.recheck)
+    log('started')
+    GLib.MainLoop().run()
+
+
+main()

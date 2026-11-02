@@ -1,0 +1,98 @@
+убунтутач24/003/в3 — правки для архива Lomiri v3. Архив v2 (postmarketos-lomiri-m52xq-mainline-v2.zip, md5 0bfe6f09…)
+собран, установлен 25.10; в2 больше не меняется (в в2/rootfs-files — ровно то, что в образе v2). Архивы собираются в корне 003.
+Сборка v3 — как v2 (см. README «Архив lomiri v2»): снять system в TWRP, удалить личные данные, wizard-has-run, resize2fs -M,
+GPT (p1 из boot-p1-v2.img или снятого), 2 части, archive-v3 (META-INF из в2/archive, баннер сменить на «lomiri v3» при сборке).
+
+Уже в в3 (на телефоне, проверено):
+- usr/local/lib/m52xq/lomiri-bin/lomiri — запуск lomiri-indicator-network-service (мастер не видел Wi-Fi на первой загрузке v2);
+- usr/local/lib/m52xq/lomiri-bin/locale — + ja_JP, zh_CN, ko_KR, ar_EG, hi_IN;
+- usr/local/bin/m52xq-app-env — lomiri-bin в PATH (список языков в Настройках).
+
+Осталось:
+1. Заставка: графика включилась (splash), но виден только фон, нет логотипа и точек (скрипт темы m52xq-ubuntu-touch).
+2. iio-sensor-proxy на загрузке v2 висел в «activating», система долго в «starting» — проверить.
+3. Сон (suspend) при выключенном экране.
+4. Окно пароля Wi-Fi теряет пароль (агент: уведомление открывается с одного D-Bus-соединения, закрывается с другого).
+5. Ошибочный файл 003/README.md (одна строка, перенесена в общий README) — удалить по разрешению.
+6. Заставка: новый скрипт (раскладка в refresh) в в3; drop-in plymouth-start с --debug-file=/run/plymouth-boot.log ВРЕМЕННО — убрать после проверки на загрузке.
+7. (сделано) автоповорот: m52xq-powerkey подписывается на акселерометр только после HasAccelerometer (в3).
+8. Значки в списке приложений: абсолютные Icon= для gallery/filemanager/Megapixels (в3, на телефоне). «Менеджер SIM-карт» — меню
+   на qmlscene (нет в 003) → переделать на qml-qt5 и/или кнопки в шторке (п. 7 плана в2).
+9. Приложения UT, которых нет: weather, docviewer — есть в edge (поставить по команде); остальные — сборка из исходников UBports.
+10. (сделано) кнопка TWRP: в v2 пустой .desktop в /usr/local/share/applications — исправлено в в3. Перед сборкой v3: find в3 -type f -size 0.
+11. (сделано, проверить при загрузке) tinydm After/Wants=iio-sensor-proxy (drop-in tinydm.service.d/20-m52xq-after-sensors.conf): без этого qtmir не видит датчик, если Lomiri стартовала раньше proxy.
+12. (сделано, проверить) заставка держится до Lomiri: plymouth-quit/-wait After=iio-sensor-proxy.
+13. ОТКАЧЕНО: m52xq-splash-handoff (логов стало больше) — оставлен вариант plymouth-quit/-wait After=iio-sensor-proxy.
+14. (сделано) Часы падали (QtSystemInfo/X11): MainPage.qml без ScreenSaver (в3). DISPLAY=:0 НЕЛЬЗЯ — Xwayland роняет Lomiri.
+15. Bluetooth: сопряжение из Настроек Lomiri зависает (InProgress) — разобраться с агентом Настроек; «Забыть» не работает; ярлык lomiri-indicator-location без перевода.
+16. (сделано) индикатор Bluetooth с сопряжёнными устройствами в шторке (пересобран, в3). ВНИМАНИЕ: apk upgrade ayatana-indicator-bluetooth заменит бинарник.
+17. plasma-dialer/spacebar/Discover поставлены (apk), службы — в обёртке lomiri; пакеты закреплены. Проверить звонок/SMS на 2 SIM. Меню SIM (qmlscene) переделать.
+18. (сделано, в3, залито 2026-10-25) SIM в панели/шторке: lomiri-indicator-network видит модемы только через oFono, у нас ModemManager →
+  свой индикатор usr/local/sbin/m52xq-indicator-sim (python/Gio, опрос MM раз в 3 с) + usr/share/ayatana/indicators/org.ayatana.indicator.m52xqsim,
+  запуск в обёртке lomiri. DSDS: 2 модема (qrtr0 = слот 1, qrtr0-sim2 = слот 2), у каждого в SimSlots оба слота, активный = PrimarySimSlot.
+  Панель: simcard-1 + сигнал, simcard-2 + сигнал, тип сети; шторка: строка на SIM + переключатель «Мобильные данные» (nmcli gsm).
+  Далее: Kirigami-приложения мелкие (QT_SCALE_FACTOR в своих .desktop), нет переводов plasma-dialer/spacebar, нет значка трубки.
+19. (на телефоне, 2026-10-25) Ярлыки панели: lomiri-telephony-service-call/sms (это обработчики, не приложения) → org.kde.plasma.dialer /
+  org.kde.spacebar (значки UT dialer-app/messaging-app в usr/share/pixmaps), override + живой LauncherItems в AccountsService.
+  Копии .desktop plasma-dialer/spacebar/discover: m52xq-app-env + QT_SCALE_FACTOR=2.5 (Kirigami не понимает GRID_UNIT_PX).
+20. plasma-dialer 6.8.1 не умеет 2 модема (selectModem() = TODO → «USSD Error: deviceUni not found»). Пересобран с патчем
+  в3/build-plasma-dialer/m52xq-dual-sim.patch: окно «SIM 1 / SIM 2» перед набором/USSD, ответ/сброс/DTMF на все модемы.
+  Залит на телефон (оригинал /usr/bin/plasma-dialer.orig), ЖДЁТ ПРОВЕРКИ — только после неё положить в rootfs-files/usr/bin.
+21. Часы: X-Lomiri-Supported-Orientations=portrait,landscape (в UT тоже только портрет), залито.
+22. Megapixels в пейзаже: поворот брался только из wl_output transform (в Lomiri всегда 0) → боком/сплюснуто.
+  r91 = r90 + apply_rotation(): альбомное превью при transform 0 → поворот из акселерометра (90/270). Собран (chroot 003/в2),
+  ../megapixels-work/megapixels.r91 (md5 bf41b19c…), патч megapixels-0001-r91.patch; не залит.
+23. Камера/приложения «не открываются» после закрытия: lomiri-app-launch 0.2.0 (Alpine, USE_SYSTEMD=OFF) — POSIX-бэкенд-заготовка:
+  fork без waitpid/jobStopped → зомби у Lomiri, Lomiri считает приложение запущенным («Application requested te be focused but no
+  window for it»); pids() любого приложения = все когда-либо запущенные; stopUnit — заглушка; при сбое execvpe дочерний шёл дальше копией Lomiri.
+  Патч в3/build-lomiri-app-launch/0002-m52xq-posix-reap-children-per-app-pids-stop.patch (g_child_watch → jobStopped, PID на приложение,
+  SIGTERM в stop, _exit(127)). Собран с флагами abuild (-Os…; с -O2 пропадали 2 экспортируемых символа AppID!), символы = r1.
+  liblomiri-app-launch.so.0.0.0.m52xq md5 12c69a64…, НЕ ЗАЛИТ. Часы: возвращён портрет (minimumHeight gu(70)/maximumWidth gu(55) в QML).
+  Megapixels: ярлык временно с /usr/local/bin/m52xq-mpx-debug (WAYLAND_DEBUG) — вернуть из /root/me.gapixels.Megapixels.desktop.bak.
+24. (2026-10-25, на телефоне) Поставлены apk: lomiri-weather-app(+lang), qmlkonsole(+lang), telegram-desktop 7.3.3 + наш ada3-3.4.4-r0
+  (в3/build-ada3, libada.so.3: в edge только ada 4; apk add --allow-untrusted). Ярлыки в rootfs-files: погода (m52xq-app-env),
+  Telegram и «Терминал KDE» (m52xq-app-env + QT_SCALE_FACTOR=2.5). При сборке v3 — эти пакеты добавить в образ.
+  Значки Kirigami (трубка, крестик): проба QT_QPA_PLATFORMTHEME=kde KDE_SESSION_VERSION=6 (встроенная KDE-тема Qt → breeze) в ярлыке звонилки;
+  plasma-integration НЕ ставить (тянет xdg-desktop-portal-kde, xwaylandvideobridge).
+25. lomiri-app-launch, 2-я правка (залита, md5 001dc1f4…): ключ PID = appId+job (POSIX::instances() — заглушка, отвечает
+  instance "somestring" → qtmir не находил PID и называл приложение по командной строке: "qmlkonsole", "/usr/bin/plasma-dialer",
+  "megapixels"; запущенное оставалось «без окна» → не открывалось повторно, нет «Закрепить», меню SIM без касаний) + jobStarted после fork.
+  QMLKonsole пересобран (в3/build-qmlkonsole, полоса клавиш над OSK), залит (/usr/bin/qmlkonsole.orig). Telegram + Organic Maps
+  закреплены (LauncherItems + override). lomiri-camera-app в Alpine нет — только сборка из исходников (по решению).
+26. (2026-10-25, залито, ЖДЁТ ПРОВЕРКИ) Камера UT lomiri-camera-app 4.1.1 (в Alpine нет): в3/build-lomiri-camera-app (патч
+  m52xq-optional-qzxing.patch, inst/ = 239 файлов в /usr) + QZXing 3.3.0 статически (в3/build-qzxing, cmake -DCMAKE_POLICY_VERSION_MINIMUM=3.5;
+  QZXING_LIBRARIES:STRING=libqzxing.a;libQt5Multimedia.so;… — порядок линковки). Ярлыки камеры/сканера: m52xq-app-env +
+  QT_GSTREAMER_CAMERABIN_VIDEOSRC=libcamerasrc. QMLKonsole: отступ клавиатуры / Screen.devicePixelRatio (Maliit даёт физ. пиксели), md5 31c2db91….
+27. (проверено 2026-10-25) QMLKonsole с полосой клавиш над OSK — в rootfs-files/usr/bin/qmlkonsole (md5 8da3e485…, делитель 2.5 = QT_SCALE_FACTOR ярлыка). Камера UT: запускается (2 QGuiApplication → один; Lomiri.Action вырезан; gst-plugins-good), но видоискатель — узкая тёмная полоса.
+28. Боковая панель Lomiri: источник — gsettings (dconf пользователя) com.lomiri.Shell.Launcher items (формат 'appid://<id>'),
+  LauncherModel::refresh() выбрасывает всё, чего там нет; AccountsService LauncherItems — только зеркало (мои правки туда затирались).
+  Задано 18 ярлыков (камера, Megapixels, Organic Maps, Telegram, Morph, Firefox, погода, терминал, часы, галерея, калькулятор,
+  файлы, SIM, TWRP, Discover, телефон, SMS, настройки); override items — то же для нового пользователя.
+  Камера UT: свой элемент GStreamer m52xqcamsrc (в3/build-m52xqcamsrc, /usr/lib/gstreamer-1.0/libgstm52xqcamsrc.so) — libcamerasrc
+  с камерой из M52XQ_CAMERA=front|rear (QT_GSTREAMER_CAMERABIN_VIDEOSRC режется Qt по '=' и ','); углы сенсоров 270 (тыл) / 90 (фронт).
+29. Камера UT, повороты (2026-10-25): из ярлыков камеры/сканера УБРАН X-Lomiri-Rotates-Window-Contents — окно поворачивает Lomiri,
+  интерфейс камеры не крутится (m52xqScreenAngle/staticRotationAngle/orientedRotationAngle = 0 вне режима ПК); видоискатель:
+  элемент VideoOutput поворачивается сам (rotation, orientation 0, стороны меняются), угол = 270 + угол телефона (акселерометр);
+  фото: тыл = поворот телефона + 270, фронт = 360 − поворот + 90; desktopMode=false при XDG_CURRENT_DESKTOP=Lomiri (было зеркало);
+  окно = Screen (было 80 GU — растяжение до свайпа). Портрет проверен — всё ровно.
+30. Зум камеры UT: camerabin digitalZoom (videocrop) → SIGSEGV; временно выключен; делаю через libcamerasrc scaler-crop в m52xqcamsrc.
+31. (2026-10-26, проверено) В rootfs-files: камера UT (+сканер) из build-lomiri-camera-app/inst, плеер lomiri-mediaplayer-app из
+  build-lomiri-mediaplayer-app/inst, /usr/lib/gstreamer-1.0/libgstm52xqcamsrc.so. Для v3 ещё пакеты apk: gst-plugins-good,
+  lomiri-weather-app(+lang), qmlkonsole(+lang), telegram-desktop + в3/build-ada3/ada3-3.4.4-r0.apk (--allow-untrusted).
+  После установки в образ: база url-dispatcher (lomiri-update-directory) и glib-compile-schemas.
+  Открыто: зум камеры (scaler-crop), сброс запомненного разрешения фото (~/.config/camera.ubports/camera.ubports.conf).
+32. (26.10) Панель ярлыков: индекс ярлыка в момент нажатия (LauncherPanel.qml) — закреплено.
+33. (26.10) Сон: m52xq-powerkey v2 (бездействие/«Не выключать экран»/suspend/тёмное пробуждение), ползунок и автояркость
+    (сглаживание+гистерезис), задержка «display off» 2,5 с; NetworkManager-dispatcher включён (WoWLAN) — закреплено.
+34. (26.10) Настройки: «О системе» (IMEI из MM, ОС, лицензии apk), «Дата и время» ru, страница «Яркость» (символ
+    DeviceModel) — закреплено.
+35. (26.10) Shell.qml: раздельные обои экрана блокировки и рабочего стола — закреплено.
+36. ОТКРЫТО: Organic Maps — развёрнутое окно искажено (в переключателе окон норм).
+37. В РАБОТЕ: код на экране блокировки — родной IntegratedLightDM (PAM) вместо заглушки Greeter.qml.
+38. Замер сна ночью (проверить ток и пробуждения по Wi-Fi/звонку с Lomiri-образом).
+39. (26.10, проверено) Код на экране блокировки: родной IntegratedLightDM (PAM, /etc/pam.d/lightdm) — закреплено.
+    Пароль пользователя user меняется кодом из Настроек (сейчас 1111) — ssh/sudo с ним же.
+40. (26.10) Organic Maps удалён (мусор в развёрнутом окне: Mir bypass + wp_viewport), вместо него Pure Maps — проверить запуск и GPS.
+41. (26.10) Страница «Мобильная сеть» в Настройках (cellular-плагин) + не спать на зарядке — закреплено, проверить на телефоне.
+42. (26.10) Pure Maps: профиль «онлайн» по умолчанию (в ~/.config/pure-maps или gsettings — найти ключ), проверить GPS-позицию.
+43. (26.10) Архив lomiri v3 собран: 003/postmarketos-lomiri-m52xq-mainline-v3.zip (md5 92e448e9…) — прошить по команде.

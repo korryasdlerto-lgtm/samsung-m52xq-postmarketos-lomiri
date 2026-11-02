@@ -1,0 +1,9 @@
+#!/bin/sh
+# Только для службы m52xq-lomiri: плагин языков Lomiri берёт список из `locale -a`
+# и ждёт имена с суффиксом .utf8; на musl их нет, поэтому список был пуст.
+if [ "$1" = "-a" ]; then
+    # v2: + Japanese, Chinese (simplified), Korean, Arabic, Hindi (Lomiri translations and Droid fonts are installed)
+    printf 'en_US.utf8\nru_RU.utf8\nja_JP.utf8\nzh_CN.utf8\nko_KR.utf8\nar_EG.utf8\nhi_IN.utf8\n'
+else
+    exec /usr/bin/locale "$@"
+fi

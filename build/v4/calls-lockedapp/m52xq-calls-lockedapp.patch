@@ -1,0 +1,55 @@
+--- Shell.qml.v3	2026-10-26 20:33:44.427980509 +0200
++++ Shell.qml	2026-10-26 20:33:44.443981038 +0200
+@@ -155,7 +155,7 @@
+                 wizard.hide();
+             }
+ 
+-            if (appId === "lomiri-dialer-app" && callManager.hasCalls && greeter.locked) {
++            if (appId === "org.kde.plasma.dialer" && callManager.hasCalls && greeter.locked) {
+                 // If we are in the middle of a call, make dialer lockedApp. The
+                 // Greeter will show it when it's notified of the focus.
+                 // This can happen if user backs out of dialer back to greeter, then
+@@ -237,6 +237,16 @@
+         ]
+     }
+ 
++    // m52xq: callManager (Lomiri.Telephony, telepathy-ofono) sees nothing with ModemManager: its place is taken by the org.m52xq.Calls flag
++    // (set by m52xq-incall-proximity while a modem call is going on), so the dialer is shown over the lock screen during a call
++    GSettings {
++        id: m52xqCallSettings
++        schema.id: "org.m52xq.Calls"
++    }
++    readonly property var callManager: QtObject {
++        readonly property bool hasCalls: m52xqCallSettings.active
++    }
++
+     readonly property alias greeter: greeterLoader.item
+ 
+     readonly property var blurSource: {
+@@ -526,7 +536,7 @@
+                 }
+             }
+ 
+-            onEmergencyCall: startLockedApp("lomiri-dialer-app")
++            onEmergencyCall: startLockedApp("org.kde.plasma.dialer")
+ 
+             // Quit the greeter as soon as a session has been started
+             onSessionStarted: {
+@@ -559,7 +569,7 @@
+         target: callManager
+ 
+         function onHasCallsChanged() {
+-            if (greeter.locked && callManager.hasCalls && greeter.lockedApp !== "lomiri-dialer-app") {
++            if (greeter.locked && callManager.hasCalls && greeter.lockedApp !== "org.kde.plasma.dialer") {
+                 // We just received an incoming call while locked.  The
+                 // indicator will have already launched lomiri-dialer-app for
+                 // us, but there is a race between "hasCalls" changing and the
+@@ -568,7 +578,7 @@
+                 // indicator didn't launch the dialer for some reason (or maybe
+                 // a call started via some other means), if an active call is
+                 // happening, we want to be in the dialer.
+-                startLockedApp("lomiri-dialer-app")
++                startLockedApp("org.kde.plasma.dialer")
+             }
+         }
+     }
