@@ -32,6 +32,35 @@ USER = 'user'
 NAME, PATH, IFACE = 'com.canonical.Unity.Screen', '/com/canonical/Unity/Screen', 'com.canonical.Unity.Screen'
 bus = None
 SLEEP_AFTER = 10	# s of screen off before the suspend
+# 003 в7 (2026-11-10): a Telegram call in the sleep woke the phone over Wi-Fi (00:39:51), but after a sleep of more than ~75 s
+# Telegram Desktop has to reconnect to its server and set the call up: 20 s were not enough, the phone slept again and the call was
+# missed (the missed-call notice came at the next wake-up). With Telegram running a Wi-Fi wake-up keeps the phone awake for 45 s.
+TG_GRACE = 45
+# 003 в7: m52xq-voip-audio refreshes this file every second while Telegram plays (ringing or a call). While it is fresh the phone does
+# not suspend and Lomiri's notification "off" (reason 4) does not blank the screen: at 00:45:47 it did, 5 s into the ring, and the
+# phone slept 10 s later with the call still ringing.
+VOIP_FLAG = '/run/user/10000/m52xq-voip-active'
+
+
+def voip_active():
+	try:
+		return time.time() - os.stat(VOIP_FLAG).st_mtime < 5
+	except OSError:
+		return False
+
+
+def telegram_running():
+	for pid in os.listdir('/proc'):
+		if pid.isdigit():
+			try:
+				# the process is "Telegram --" (comm "Telegram"), not telegram-desktop (00:45: the 45 s were not used)
+				if open('/proc/%s/comm' % pid).read().strip() == 'Telegram':
+					return True
+			except OSError:
+				pass
+	return False
+
+
 RESUME_GRACE = 20	# s after a resume (a dark wake-up: the apps get what the wake-up brought, then this suspends again; m52xq-wifi-dark only watches the keys)
 DIM_LEVEL = 0.3	# of the brightness
 OFF_DELAY = 2500	# ms between backlight off and "display off" to Lomiri
@@ -185,6 +214,7 @@ REPOWERD_XML = """<node><interface name="com.lomiri.Repowerd">
 <method name="clearSysState"><arg type="s" direction="in"/></method>
 <method name="requestWakeup"><arg type="s" direction="in"/><arg type="t" direction="in"/><arg type="s" direction="out"/></method>
 <method name="clearWakeup"><arg type="s" direction="in"/></method>
+<signal name="Wakeup"/>
 <method name="enableProximityHandling"><arg type="s" direction="in"/></method>
 <method name="disableProximityHandling"><arg type="s" direction="in"/></method>
 <method name="registerClient"><arg type="s" direction="in"/></method>
@@ -211,6 +241,7 @@ USCREEN_XML = """<node><interface name="com.canonical.Unity.Screen">
 <method name="m52xqRefresh"/>
 <signal name="DisplayPowerStateChange"><arg type="i"/><arg type="i"/></signal>
 </interface></node>"""
+NOTIF_REASONS = (4, 5)	# Lomiri Powerd reasons: Notification, SnapDecision
 BR_MIN, BR_MAX, BR_DEFAULT = 5, 255, 180
 bright = {'user': BR_DEFAULT, 'auto': False, 'lux': None, 'llux': None, 'target': None, 'cookie': 0, 'user_t': 0.0}
 
@@ -333,14 +364,31 @@ def repowerd_call(conn, sender, path, iface, method, params, inv):
 	elif method == 'setScreenPowerMode':
 		mode, reason = params.unpack()
 		touch = find(TOUCH)
-		if mode == 'on' and dark_resume_active():
+		if mode == 'on' and dark_resume_active() and reason == 5:
+			# m52xq 003 в6: an incoming call wakes the phone through the modem (dark resume) and Lomiri asks for the display with its
+			# snap decision (reason 5). The request used to be ignored and m52xq-wifi-dark ended the dark window only later, when nobody
+			# asked again: the ring played on a black screen until the call ended. A call ends the dark window here and lights the screen.
+			write(DARK_RESUME, 0)
+			log('setScreenPowerMode on (reason 5, from %s): call during a dark resume, the display goes on' % sender)
+			if not screen_is_on():
+				idle['notif_on'] = False	# the snap decision closes when the call is answered: its "off" must not blank the call
+				threading.Thread(target=screen_on, args=(touch, reason), daemon=True).start()
+		elif mode == 'on' and dark_resume_active():
 			# m52xq: an SMS notification made Lomiri light the screen 0.5 s after a modem wake-up (backlight flash before the sound);
 			# a call ends the dark window itself (m52xq-wifi-dark), a key too (panel driver)
 			log('setScreenPowerMode on (reason %s, from %s) ignored: dark resume' % (reason, sender))
 		elif mode == 'on' and not screen_is_on():
+			idle['notif_on'] = reason in NOTIF_REASONS
 			threading.Thread(target=screen_on, args=(touch, reason), daemon=True).start()
 		elif mode == 'off' and screen_is_on():
-			threading.Thread(target=screen_off, args=(touch, reason), daemon=True).start()
+			# Lomiri sends "off" (4 Notification, 5 SnapDecision) when a notification or a dialog such as the Wi-Fi password closes: it only
+			# drops its own request. Off only if that request turned the screen on, else the screen locked while in use
+			if reason in NOTIF_REASONS and voip_active():
+				log('Lomiri: off (reason %s) ignored, a Telegram call is ringing / active' % reason)
+			elif reason in NOTIF_REASONS and not idle.pop('notif_on', False):
+				log('Lomiri: off (reason %s) ignored, the screen was not turned on by it' % reason)
+			else:
+				threading.Thread(target=screen_off, args=(touch, reason), daemon=True).start()
 		inv.return_value(GLib.Variant('(b)', (True,)))
 	elif method == 'requestSysState':
 		bright['cookie'] += 1
@@ -351,8 +399,21 @@ def repowerd_call(conn, sender, path, iface, method, params, inv):
 		idle['sys'].pop(params.unpack()[0], None)
 		inv.return_value(None)
 	elif method == 'requestWakeup':
+		# m52xq в6 (from classic в4): the clock alarm waits for the Wakeup signal at this time (seconds since the epoch); the RTC
+		# wakes a sleeping phone (vendor_boot local-v35: pmk8350 RTC enabled)
 		bright['cookie'] += 1
-		inv.return_value(GLib.Variant('(s)', ('m52xq-%d' % bright['cookie'],)))
+		cookie = 'm52xq-%d' % bright['cookie']
+		name, when = params.unpack()
+		wakeups[cookie] = when
+		log('wakeup %s for %s in %d s' % (cookie, name, when - time.time()))
+		if len(wakeups) == 1:
+			GLib.timeout_add_seconds(1, wakeup_check)
+		wakeup_rtc()
+		inv.return_value(GLib.Variant('(s)', (cookie,)))
+	elif method == 'clearWakeup':
+		wakeups.pop(params.unpack()[0], None)
+		wakeup_rtc()
+		inv.return_value(None)
 	elif method == 'listSysRequests':
 		inv.return_value(GLib.Variant('(a(ssi))', ([(n, s, 1) for s, n in idle['sys'].values()],)))
 	elif method == 'getSysRequestStats':
@@ -539,6 +600,34 @@ def in_call():
 	return False
 
 
+wakeups = {}
+WAKEALARM = '/sys/class/rtc/rtc0/wakealarm'
+
+
+def wakeup_rtc():
+	# relative ("+N"): the PMIC RTC counts from its own zero (1970 here), only the distance to the alarm matters
+	try:
+		with open(WAKEALARM, 'w') as f:
+			f.write('0')
+		if wakeups:
+			with open(WAKEALARM, 'w') as f:
+				f.write('+%d' % max(2, int(min(wakeups.values()) - time.time())))
+	except OSError as e:
+		log('wakealarm: %s' % e)
+
+
+def wakeup_check():
+	now = time.time()
+	due = [c for c, t in wakeups.items() if t <= now]
+	for c in due:
+		del wakeups[c]
+	if due:
+		log('wakeup %s now' % ' '.join(due))
+		bus.emit_signal(None, REPOWERD_PATH, REPOWERD, 'Wakeup', None)
+		wakeup_rtc()
+	return bool(wakeups)
+
+
 def sound_running():
 	for f in glob.glob('/proc/asound/card*/pcm*/sub*/status'):
 		try:
@@ -546,7 +635,19 @@ def sound_running():
 				return True
 		except OSError:
 			pass
-	return False
+	return bluetooth_sound()
+
+
+def bluetooth_sound():
+	# m52xq в6 (from classic в5): Bluetooth audio does not pass the ALSA card: the phone went to sleep 10 s after the lock and the
+	# speaker dropped
+	try:
+		r = subprocess.run(['runuser', '-u', USER, '--', 'env', 'PULSE_SERVER=unix:/run/user/10000/pulse/native',
+			'PULSE_COOKIE=/home/user/.config/pulse/cookie', 'pactl', 'list', 'short', 'sinks'],
+			capture_output=True, text=True, timeout=4)
+	except (OSError, subprocess.SubprocessError):
+		return False
+	return any('bluez' in l and 'RUNNING' in l for l in r.stdout.splitlines())
 
 
 def on_charger():
@@ -574,6 +675,8 @@ def why_awake():
 		if key != idle.get('sys_logged'):
 			idle['sys_logged'] = key
 			log('sys-state requests ignored for the suspend: ' + key)
+	if voip_active():
+		return 'telegram call'
 	if in_call():
 		return 'call'
 	if sound_running():
@@ -640,7 +743,7 @@ def tick():
 		return True
 	if idle['off_since'] is None:
 		idle['off_since'] = now	# off by someone else (call proximity, start)
-	if now - idle['off_since'] < SLEEP_AFTER or now - idle['resumed'] < RESUME_GRACE or now < idle['next_try']:
+	if now - idle['off_since'] < SLEEP_AFTER or now - idle['resumed'] < idle.get('grace', RESUME_GRACE) or now < idle['next_try']:
 		return True
 	why = why_awake()
 	idle['next_try'] = now + (15 if why else 60)	# a failed / inhibited suspend: try again in a minute
@@ -659,6 +762,7 @@ def prepare_for_sleep(conn, sender, path, iface, signal, params):
 	now = time.monotonic()
 	idle['resumed'] = now
 	idle['next_try'] = 0.0
+	idle['grace'] = RESUME_GRACE
 	try:
 		irq = open('/sys/power/pm_wakeup_irq').read().strip() if os.path.exists('/sys/power/pm_wakeup_irq') else ''
 	except OSError:
@@ -669,7 +773,9 @@ def prepare_for_sleep(conn, sender, path, iface, signal, params):
 		if f and f[-1] in ('ce2', 'ipa'):
 			dark.add(f[0].rstrip(':'))
 	if irq in dark:
-		log('resumed by irq %s (Wi-Fi / mobile data): screen stays off' % irq)
+		if telegram_running():
+			idle['grace'] = TG_GRACE
+		log('resumed by irq %s (Wi-Fi / mobile data): screen stays off for %d s' % (irq, idle['grace']))
 		return
 	if not irq:
 		log('resumed without irq (modem: SMS / call): screen stays off, a call or a key turns it on')

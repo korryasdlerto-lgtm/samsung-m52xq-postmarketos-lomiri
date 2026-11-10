@@ -1,7 +1,7 @@
 [Desktop Entry]
 # m52xq (убунтутач24/003 v3): absolute Icon path — Lomiri did not find the hicolor icon by name (no icon in the app drawer)
 Name=Megapixels
-Exec=megapixels
+Exec=/usr/local/bin/m52xq-megapixels-lomiri
 Terminal=false
 Type=Application
 Categories=GTK;Photography;Graphics;

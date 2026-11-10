@@ -1,0 +1,13 @@
+--- a/src/layouts/columnview.cpp	2026-11-10 02:26:42.408923155 +0200
++++ b/src/layouts/columnview.cpp	2026-11-10 02:26:42.424923153 +0200
+@@ -502,7 +502,9 @@
+     const qreal to = qRound(qBound(qMin(0.0, -width() + parentItem()->width()), newX, 0.0));
+ 
+     m_slideAnim->stop();
+-    if (qFuzzyCompare(x(), to)) {
++    // m52xq: within half a pixel = already in place (every tap ends in snapToItem(); with a fractional scale x() is
++    // not exactly the rounded target, qFuzzyCompare missed it, an empty slide ran and the next tap was taken for a drag)
++    if (qAbs(x() - to) < 0.5) {
+         finishAnimation();
+         return;
+     }

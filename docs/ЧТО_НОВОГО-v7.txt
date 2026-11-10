@@ -1,0 +1,189 @@
+003 в7 (начата 2026-11-09). База: в6 (архив postmarketos-lomiri-m52xq-mainline-v1-v6.zip, md5 4d36454ff49fe7a4cbba710deb6235b0, прошит 2026-11-09, RC=0).
+
+1. Баннер установщика: ссылка на репозиторий этого проекта вместо pm v2.
+   META-INF/com/google/android/update-binary, строка 106:
+   было  https://github.com/korryasdlerto-lgtm/samsung-m52xq-mainline
+   стало https://github.com/korryasdlerto-lgtm/samsung-m52xq-postmarketos-lomiri  (репозиторий приватный)
+   Остальной установщик без изменений.
+   md5 d2c5feae7f308b5c19f5653e70d86ca5
+
+2. rootfs-files/usr/local/share/applications/me.gapixels.Megapixels.desktop
+   В в6/rootfs-files перед [Desktop Entry] стояла лишняя строка "Exec=/usr/local/bin/m52xq-megapixels-lomiri"
+   (ошибка копии; на телефоне и в образе v1-v6 файл правильный). Взят файл с телефона (lomiri v1-v6, 2026-11-09).
+   md5 f5cefbd591b6a236446a950db20eb83e
+
+3. Камера Lomiri: зум не работал, в альбомной шкала зума сжата до «+» (скрин 2026-11-09 20:10). Перенос классик в8:
+   - build-m52xqcamsrc/gstm52xqcamsrc.c = в6 (d676cd99, soc@0, лимит 4K 24 к/с) + блок цифрового зума классика в8
+     (XDG_RUNTIME_DIR/m52xq-zoom, центр 1/z кадра растягивается) + zoom_attach после af_attach.
+     Собран в buildroot_aarch64 workdir Phosh (дроидиан/постмаркет, Alpine edge, gcc 15.2.0, gstreamer 1.28.7 = телефон):
+     gcc -Wall -O2 -fPIC -shared ... $(pkg-config --cflags --libs gstreamer-1.0 gstreamer-video-1.0) -lm — без предупреждений.
+     libgstm52xqcamsrc.so 041e1e01790e34539bbf1ac5f54e3dad (было 7400ad87…), strings m52xq-zoom = 2.
+   - rootfs-files/usr/share/lomiri-camera-app/qml/Viewfinder/ViewFinderView.qml 9f1a65f8… (было df23dfe1…):
+     maximumZoom 3.0 (до 4x), 1+currentZoom → /run/user/10000/m52xq-zoom; снимок при смене камеры повёрнут как видоискатель.
+   - ViewFinderOverlay.qml f355ae15… (было 4c40544a…): в альбомной шкала внизу видоискателя слева от колонки кнопок.
+     (на телефоне были ровно базовые версии правок классика в8 → файлы в8 целиком)
+   На телефоне (тест, 2026-11-09 22:15): установлены, оригиналы в /root/m52xq-pre-v7/; gst-inspect m52xqcamsrc ok.
+   Удалён кэш реестра GStreamer пользователя ~/.cache/gstreamer-1.0 (пересоздаётся сам). НЕ ПРОВЕРЕНО пользователем.
+   .so ещё НЕ в rootfs-files (после проверки → usr/lib/gstreamer-1.0/).
+   ✅ Проверено (2026-11-09, пользователь: «камера норм»; /run/user/10000/m52xq-zoom = 1.493 — QML пишет коэффициент).
+   ЗАКРЕПЛЕНО в в7/rootfs-files: usr/lib/gstreamer-1.0/libgstm52xqcamsrc.so 041e1e01…, ViewFinderView.qml 9f1a65f8…,
+   ViewFinderOverlay.qml f355ae15…. Оригиналы на телефоне: /root/m52xq-pre-v7/.
+
+4. GPS: «не видит расположения в картах» (2026-11-09). Цепочка MM GNSS → m52xq-gnss-gpsd → gpsd → lomiri-location-service
+   → Pure Maps (qtposition_lomiri) работает; engine lock none + standalone при загрузке ставятся (m52xq-modem-setup).
+   За 24 мин у окна: 16 спутников в GSV (SNR 19–33, у большинства высота 0), 0 в решении, в $GPRMC нет даже времени UTC.
+   Причина: холодный старт без вспомогательных данных — XTRA и время в модем не передаются никогда (inject-time убран
+   ещё 2026-10-02: давал фальшивую неделю 2028). Записи о фиксе в pm были только на старом дереве (30.10, в42);
+   после перехода на апстримное дерево (03.11) фикса нигде не записано — pm v2 и классик, вероятно, так же.
+   Питание исключено: ядро выключает только L1c/L2b (USB PHY) и L6c/L9c (SD) — по стоковому DT не GNSS.
+   ТЕСТ (по «да»), на телефоне, живьём:
+     wget https://path1.xtracloud.net/xtra3grcej.bin → /tmp (48439 б, f15904e0…, сервер — из mmcli --location-status)
+     mmcli -m 0 --location-inject-assistance-data=/tmp/xtra3grcej.bin → MM: «Aborted: Failed to receive indication with
+     the server update result», НО модем данные принял: через ~1 мин $GPRMC A, $GPGGA quality 1, 3 спутника, HDOP 2.2;
+     gpsd TPV mode 3. (Координаты в документ не вносятся.)
+   Вывод: нужна загрузка XTRA (раз в несколько дней + при включении GPS). НЕ закреплено, ждёт решения и проверки в картах.
+   Второе звено: после фикса Pure Maps позицию не показывал. lomiri-location-serviced (gpsd::Provider), пока фикса не было
+   (с 20:27), писал «GPSD Error: unknown error» раз в секунду, а при следующих запросах «gps_sock_send() write -1» —
+   соединение с gpsd мёртвое, переподключения нет. По «да»: systemctl restart lomiri-location-service (20:59:36) →
+   «GPSD waiting for data», ошибок 0, Pure Maps показал позицию (пользователь: «есть»). Постоянного решения ещё нет.
+   Постоянное решение (по «да», 2026-11-09 21:02–21:06, живьём на телефоне; файлы в в7/build-gps/, в rootfs-files — после
+   проверки с перезагрузкой):
+   - /usr/local/bin/m52xq-gps-xtra (d4201fe5…): XTRA-файл /var/lib/m52xq/xtra3grcej.bin скачивается заново, если старше 3 дней,
+     с серверов из mmcli --location-status; в модем загружается только после нового скачивания или один раз после загрузки
+     (/run/m52xq-gps-xtra-injected): загрузка при работающем движке сбрасывает фикс на ~2,5 мин (21:02 → 21:05:07).
+     «Aborted» от MM считается успехом. Юниты m52xq-gps-xtra.service (1ec662b3…, After ModemManager/m52xq-modem-setup/
+     network-online) + m52xq-gps-xtra.timer (cc1bfef4…, OnBootSec=2min, OnUnitActiveSec=12h), timer enabled.
+   - /usr/local/sbin/m52xq-gnss-gpsd (37dc6cf2…, было 202a8039…, оригинал /root/m52xq-pre-v7/): следит за журналом
+     lomiri-location-service (journalctl -f); при «gps_sock_send() write -1» или 10 «GPSD Error» подряд — systemctl restart
+     lomiri-location-service, не чаще раза в 120 с. После перезапуска моста (gpsd новый) lomiri-location-service переподключился
+     сам, сторож не понадобился; Pure Maps держит позицию (пользователь: «держится»).
+   НЕ ПРОВЕРЕНО: загрузка XTRA при выключенном движке (после перезагрузки) и срабатывание сторожа на настоящем обрыве.
+   Те же правки (XTRA) нужны pm v2 и классику.
+   META-INF/com/google/android/update-binary → 932bf33e…: добавлен блок включения m52xq-gps-xtra.timer (срабатывает, только если
+   юнит есть в образе). То же перенесено в pm v2 (архив/в51). Классику нужна папка в9 (по команде).
+   ── продолжение п.4 (2026-11-09 21:35–22:45) ──
+   - После перезагрузки XTRA загрузилась через минуту ПОСЛЕ включения движка (таймер 2 мин) → сброс поиска. Таймер → OnBootSec=30s
+     (d1cda362…); в 30 с MM отвечал «Unsupported» (модем ещё не включён) → в скрипте повтор каждые 10 с до 3 мин (58fdb467…).
+     Проверено перезагрузкой: «injected» 21:55:44, движок включён 21:55:45.
+   - Мост m52xq-gnss-gpsd a6efd3d2… (было 37dc6cf2…): MM отдаёт строки NMEA вперемешку (GSA, $PQ…, RMC, GSV, GGA) → gpsd через
+     раз «нет фикса» (TPV mode 2,1,2,1…). Теперь только GGA, GSA, GSV, RMC (VTG) в этом порядке, без $PQ → mode 3,3,3…
+     (проверено вторым gpsd на порту 2948 с теми же данными, затем на живом).
+   - ГЛАВНОЕ: lomiri-location-service 3.4.1 gpsd::Provider передаёт фикс только при isfinite(fix.altitude), а в gpsd 3.27
+     (gps.h) это поле «DEPRECATED, undefined» → позиция из gpsd к приложениям НЕ доходила никогда («could not get a GPS fix»
+     каждую секунду, обновлений нет). Прослойка LD_PRELOAD m52xq-gps-alt (build-gps/m52xq-gps-alt.c, перехват gps_read и
+     gpsmm::read: altitude ← altMSL/altHAE, 2D без высоты → 0), собрана g++ в buildroot_aarch64 workdir Phosh (gpsd-dev 3.27):
+     /usr/local/lib/m52xq/libm52xq-gps-alt.so b418b189… + drop-in lomiri-location-service.service.d/zz-m52xq-gps-alt.conf
+     a210c30b… (LD_PRELOAD=libaa-unconfined.so:libm52xq-gps-alt.so). ✅ Проверено 22:45: фикс 5 спутников HDOP 1.8, Pure Maps
+     показал позицию (пользователь: «есть!!!»), «could not get a GPS fix» только 3 раза до фикса.
+   ЗАКРЕПЛЕНО в в7/rootfs-files: usr/local/bin/m52xq-gps-xtra, usr/local/sbin/m52xq-gnss-gpsd, usr/local/lib/m52xq/libm52xq-gps-alt.so,
+   etc/systemd/system/m52xq-gps-xtra.{service,timer}, etc/systemd/system/lomiri-location-service.service.d/zz-m52xq-gps-alt.conf
+   (md5 = телефон). Таймер включает установщик (блок timers.target.wants). Оригиналы: /root/m52xq-pre-v7/.
+   Сторож обрыва связи lomiri-location-service ↔ gpsd в мосте ещё не срабатывал на настоящем обрыве.
+   Сон (2026-11-09 22:44): 5 засыпаний, fail 0, последний 22:21→22:43; GPS ставится на паузу и возвращается; тёмные Wi-Fi
+   пробуждения 22:09, 22:20. Замер тока недоступен (нет подробного журнала: флаг /etc/m52xq-soclog-verbose выключен в образе).
+
+5. Значок Wi-Fi пропал из панели при живом подключении (скрин 22:46). NetworkManager: connected, connectivity full, wlan0 =
+   Devices/3, активная точка AccessPoint/118 (<home-wifi-5G-2>, 56 %). Индикатор (lomiri-indicator-network-service, запущен 21:55)
+   знал только accesspoint.82…95, а phone.network-status был без 'icons' — новые точки от NM он перестал получать (после
+   смены сети <home-wifi-5G> → <home-wifi-5G-2> в 22:02 и тёмных пробуждений по Wi-Fi; в его журнале с 21:55 ничего). Индикатор работает в
+   session-c1.scope (не служба systemd: xdg-autostart-generator не разбирает пустой Exec= в lomiri-indicator-network.desktop).
+   По «да»: kill 2450, перезапуск с окружением прежнего процесса (env -i $(environ) setsid /usr/libexec/lomiri-indicator-network/
+   lomiri-indicator-network-service) → icons nm-signal-50-secure, значок и меню сети на месте (пользователь: «да есть»).
+   Причина рассинхронизации НЕ найдена — ТОДО.
+
+6. Менеджер SIM и мобильные данные (2026-11-09 22:5x–23:5x, живьём на телефоне):
+   - Переключатель «Мобильные данные» прыгал: 22:48:21 включение начало подключение на qrtr0 (SIM1), 22:48:30 выбор «Data: SIM2»
+     → m52xq-sim-mode перепривязал профиль → MM переопознал порт qrtr0-sim2 → подключение оборвалось.
+   - m52xq-indicator-sim 3694eb51… (было 6de129c5…): пишет XDG_RUNTIME_DIR/m52xq-mobile-data (1/0) при каждой проверке (3 с).
+   - sim-mode-menu.qml d93d99be… (было 1e01c281…): кнопки «Data: SIM1/SIM2» серые при выключенных данных; новая кнопка
+     «Turn mobile data ON/OFF» под «SIM cards power» (тот же переключатель, что в шторке); масштаб под лишнюю строку.
+   - m52xq-sim-mode-menu 39b3856d… (было aaff768d…): dataon/dataoff → nmcli connection up/down; результат по реальному ACTIVE
+     (nmcli вернул ошибку, хотя SIM2 подключилась за 14 с).
+   - Индикатор SIM перезапущен как служба пользователя m52xq-indicator-sim-manual (systemd-run --user), сетевой индикатор —
+     m52xq-indicator-network-manual (первый ручной перезапуск через setsid убил systemd вместе с SSH-сессией — моя ошибка).
+   Оригиналы: /root/m52xq-pre-v7/. Шторка — проверено («из шторки включаются»), менеджер — после правки ждёт проверки.
+
+7. Telegram (2026-11-09 23:3x–00:1x):
+   - Звук уведомлений/звонка был, но тихий: громкость динамика 30 % (звук играет Lomiri по category im.received, Telegram сам
+     не играет). Telegram в фоне не замораживается.
+   - Звонок во сне: телефон будил Wi-Fi, мелодия играла, экран спал. m52xq-voip-audio cb2f6565… (было 5ecd4bdc…): при появлении
+     потока Telegram без микрофона → setScreenPowerMode on 5 (m52xq-powerkey включает экран в тёмном пробуждении). ✅ экран включился.
+   - Звук пропадал через 2 с после ответа: на 7.1.13 смена микшера маршрута не переносит играющий поток. m52xq-audio-route a709bc53…
+     (было 49749849…): после earpiece_on/off — pactl suspend-sink 1/0 (PCM переоткрывается); карта ищется как platform-(soc_)sound.
+     Проверено тоном 1 кГц (громкий → разговорный). Настоящий звонок ещё не проверен.
+   - Во сне звонки/сообщения не доходили: NetworkManager отключал wlan0 перед сном (reason 'sleeping'), т.к. WoWLAN не был взведён:
+     m52xq-nm-keep-wifi.sh повторно взводил его через /usr/sbin/iw, а iw здесь /usr/bin/iw. m52xq-nm-keep-wifi.sh df77a05a…
+     (было 427406a1…, то же в pm в47): iw через command -v. После правки Wi-Fi держится на сон, пробуждения по Wi-Fi 00:11:07, 00:12:11.
+   - НО: следующий сон 00:12:37 → падение прошивки WPSS «wal_umac_sm.c:2305:CSS sleep failure due to requester id 0xd holding UMAC
+     lock», на пробуждении wow wakeup timeout ×3, затем петля mhi_issue_request → только перезагрузка (та же подпись была 24.10 в pm,
+     причина не найдена). Пользователь выбрал разбирать падение (вариант 2).
+   - Опыт (по «да», 2026-11-10 00:19, после перезагрузки): m52xq_wow_apf 2 → 0 на ходу (до перезагрузки), /etc/m52xq-soclog-verbose
+     создан (ИСКЛЮЧИТЬ из образа — build-v6-image.sh его уже исключает). Сон с Wi-Fi на ночь.
+
+8. Звонилка теряет быстрые нажатия (то же было в pm 2026-10-02: Kirigami ColumnView запускал пустую анимацию сдвига на каждом
+   TouchEnd, следующие касания считались перетаскиванием; в pm лечилось kirigami 6.30.0-r90). В 6.31 upstream уже проверяет
+   qFuzzyCompare(x(), to), но при дробном масштабе x() не равен точно округлённой цели → патч перенесён на 6.31: qAbs(x()-to) < 0.5.
+   Собран в workdir Phosh: build-kirigami/ kirigami-6.31.0-r90.apk 76fbb0b0…, libKirigamiLayouts.so.6.31.0 c1eaac84…
+   (рецепт pmaports temp/kirigami теперь 6.31 r90; рецепт pm 6.30 r90 сохранён в майнлайн/patches/kirigami-6.30-r90-recipe/).
+   На телефон НЕ ставился (ночной опыт со сном). Проверить, что версия Kirigami на телефоне 6.31.0.
+
+9. Звонок Telegram во сне — РАБОТАЕТ (2026-11-10 00:51, пользователь: «есть работает!!!!»):
+   - 00:39:51 пуш звонка будил телефон по Wi-Fi, но за 20 с тёмного пробуждения Telegram (после сна > ~75 с переподключается)
+     не успевал → пропущенный. m52xq-powerkey: при пробуждении по Wi-Fi и запущенном Telegram (comm "Telegram", не
+     telegram-desktop — первая версия c7b65ac6 его не находила) окно 45 с вместо 20.
+   - 00:45:47 через 5 с звонка Lomiri снимал своё уведомление (setScreenPowerMode off, 4) → экран гас, через 10 с сон посреди
+     звонка. m52xq-voip-audio 9b6d91dd… обновляет /run/user/10000/m52xq-voip-active, пока у Telegram есть поток; m52xq-powerkey
+     97122573… (было e68283ad…): пока флаг свеж (< 5 с) — «stays awake: telegram call» и off reason 4 игнорируется.
+   - Проверка 00:49–00:51: «screen stays off for 45 s», 00:51:10 пробуждение по Wi-Fi → 00:51:11 Telegram звонит, экран вкл.
+   ЗАКРЕПЛЕНО в в7/rootfs-files (md5 = телефон): usr/local/sbin/m52xq-powerkey 97122573…, usr/local/bin/m52xq-voip-audio 9b6d91dd…,
+   usr/local/bin/m52xq-audio-route a709bc53…, usr/lib/systemd/system-sleep/m52xq-nm-keep-wifi.sh df77a05a…,
+   usr/local/sbin/m52xq-indicator-sim 3694eb51…. Менеджер SIM (sim-mode-menu.qml d93d99be…, m52xq-sim-mode-menu 39b3856d…) —
+   в build-sim/, кнопка мобильных данных ещё не проверена. libKirigamiLayouts (c1eaac84…, на телефоне) — набор не проверен.
+   Оригиналы всего — /root/m52xq-pre-v7/ на телефоне.
+   ТОДО: падение WPSS «CSS sleep failure … UMAC lock» в долгом сне с Wi-Fi (опыт на ночь: APF=2, verbose-журнал);
+   те же правки Telegram/iw/audio-route — в pm v2 и классик.
+   ✅ Быстрый набор в звонилке проверен (2026-11-10, пользователь: «быстрый набор ок»). ЗАКРЕПЛЕНО: rootfs-files/usr/lib/
+   libKirigamiLayouts.so.6.31.0 c1eaac84… (только этот файл; apk add не годится — тянул удаление gnome-keyring/gcr).
+
+10. Входящий GSM во сне: после звонка звонилка оставалась «locked app» поверх экрана блокировки (Shell.qml ставит greeter.lockedApp
+    на звонок, снимать в конце некому — lomiri-dialer-app возвращал к greeter сам, plasma-dialer нет): ни свайпа с края, ни шторки,
+    ни боковой панели, касания в звонилке не доходили; помогало только заблокировать/разблокировать.
+    Shell.qml 58b8c5a9… (было 295839d3…): onHasCallsChanged при !hasCalls и lockedApp == org.kde.plasma.dialer → lockedApp = "",
+    при locked → greeter.forceShow(). Установлено, сеанс перезапущен (по «делай», systemctl restart tinydm 01:01:53).
+    ✅ Проверено 01:05: сон → звонок (флаг 01:05:02 → 01:05:27) → экран блокировки → всё работает (пользователь: «ок!!»).
+    ЗАКРЕПЛЕНО: rootfs-files/usr/share/lomiri/Shell.qml 58b8c5a9…. Оригинал /root/m52xq-pre-v7/Shell.qml.295839d3.
+
+11. Менеджер SIM ↔ шторка (2026-11-10 01:05–01:15):
+    - «из менеджера не включается»: в m52xq-sim-mode-menu имя подключения было в переменной c, а state() пишет в c слоты SIM →
+      «nmcli connection down 12» («'12' is not an active connection»). m52xq-sim-mode-menu 74a457fe…: переменная conn, надписи
+      connecting…/disconnecting….
+    - «переключатель в шторке дёргается каждые 8–12 с»: индикатор пересобирал весь раздел меню при каждом изменении сигнала, Lomiri
+      рисовал новый переключатель «выкл». m52xq-indicator-sim a9999c74…: переключатель в своём разделе, создаётся один раз.
+    ✅ Проверено: вкл из менеджера → шторка вкл; выкл в шторке → менеджер ON + кнопки SIM серые (пользователь: «в шторку
+    подтянуло», «в манагер подтянуло»). ЗАКРЕПЛЕНО в rootfs-files: usr/local/sbin/m52xq-indicator-sim a9999c74…,
+    usr/local/bin/m52xq-sim-mode-menu 74a457fe…, usr/local/share/m52xq/sim-mode-menu.qml d93d99be… (заменяют записи п.6/9).
+    - Смена SIM данных (SIM2 → SIM1, 01:15:44) обрывала подключение навсегда: autoconnect выключен, m52xq-sim-mode его не поднимал.
+      m52xq-sim-mode 0dc78009… (было aebebf17…): если данные были включены — trap EXIT ждёт модем новой SIM в NM (до 90 с) и делает
+      nmcli connection up. ✅ 01:18:20 data2 → 01:19:05 «mobile data were on: up again on qrtr0-sim2: 0», подключено.
+      ЗАКРЕПЛЕНО: rootfs-files/usr/local/sbin/m52xq-sim-mode 0dc78009…. Оригинал /root/m52xq-pre-v7/.
+    - Порядок в менеджере SIM (по просьбе): SIM cards power сверху, затем Mode, «SIM of the mobile data» (была подпись
+      «Mobile data»), внизу Turn mobile data ON/OFF. ✅ «норм». ЗАКРЕПЛЕНО: usr/local/share/m52xq/sim-mode-menu.qml 8819f985….
+
+12. АРХИВ v1-v7 СОБРАН (2026-11-10 03:3x, по «закрепляй собирай релизный в1 на в7»; НЕ ПРОШИТ):
+    postmarketos-lomiri-m52xq-mainline-v1-v7.zip, 1 411 796 637 Б, md5 eb2e763c6a62e33ff3f0f5c2332b9813, unzip -t: No errors.
+    - Перед сборкой: все 20 файлов в7/rootfs-files совпали с телефоном по md5.
+    - Образ /home/sasha/003-v7-build/samsung-m52xq-lomiri-v1-v7.img md5 a1ce7c39d74c288deda1054efe6acb61 (4 959 207 424 Б):
+      `PATTERNS=/home/sasha/003-v7-build/patterns.txt в7/build-v7-image.sh` (копия в6-скрипта: + исключены сети ASUS*, var/lib/systemd/pstore/*,
+      var/lib/m52xq/bootreport.txt; метка «lomiri v1-v7»; база разметки /home/sasha/003-v6-build/base-v3.img). Поиск 27 образцов (+SSID <home-wifi-5G>,
+      <home-wifi-5G-2>): hits=0; ssh-ключей 0; сети: только m52xq-mobile-internet; /home 236K; флага soclog-verbose нет. Шаг каталогов var/log|cache|tmp
+      падал (busybox tar без --null/-T, так было и в v1-v6) — повторён вручную через /tmp/gtar от root (3 → 32 каталога, без файлов), скрипт
+      исправлен; e2fsck -fn чистый.
+    - `split -n 2 -d -a 1` → data/rootfs-chunks part-0/1 по 2 479 603 712 Б (cat = a1ce7c39…); firmware/ = в6 (boot_v256 без IPA 64c1ce0d,
+      vendor_boot local-v35 8ce2ea61, dtbo-frag 7202d445); mainline-extras = только метка etc/m52xq/lomiri-release (rootfs-files в zip НЕ кладутся —
+      всё уже в снимке); META-INF update-binary 932b567f (шапка lomiri v1, ссылка на репо, блок таймера XTRA). find -xtype l = 0.
+    - `cd 003/в7 && zip -9 -r ../postmarketos-lomiri-m52xq-mainline-v1-v7.zip META-INF data firmware mainline-extras -x 'test-images/*' > ../zip-v1-v7.log`
+    - В образе по-прежнему APF по умолчанию (2); подробный журнал сна выключен.
+    - ПРОШИТ 2026-11-10 (по «да заливай»: adb push в /data, md5 на телефоне eb2e763c…; /data перед этим пуст после Format Data):
+      TWRP «Updater process ended with RC=0», 90 с; баннер со ссылкой на samsung-m52xq-postmarketos-lomiri; IPA с apnhlos в boot;
+      system 8 000 000 000; прошивки ADSP/GPU/IPA/Venus/BT/датчики/модем и адрес BT — с телефона; «Injecting rootfs-files» = только метка.
+      Дальнейшие правки — в в8 (по команде), в7 и этот архив не трогать.

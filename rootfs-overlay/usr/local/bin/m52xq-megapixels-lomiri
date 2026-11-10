@@ -1,0 +1,4 @@
+#!/bin/sh
+# m52xq (003 в6): Megapixels under Lomiri. Mir sends window sizes and touches in pixels while it announces scale 2.625, so
+# GTK runs at scale 1 through the libm52xq-wl-scale1.so shim and Megapixels (r93) enlarges its own UI by M52XQ_UI_SCALE.
+exec env LD_PRELOAD=/usr/local/lib/libm52xq-wl-scale1.so M52XQ_UI_SCALE=2.625 megapixels "$@"

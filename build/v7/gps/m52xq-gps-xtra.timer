@@ -1,0 +1,9 @@
+[Unit]
+Description=M52XQ: GNSS XTRA data 30 s after boot and every 12 h
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=12h
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,15 @@
+в9 (003: postmarketOS + Lomiri): правки после релиза postmarketos-lomiri-m52xq-mainline-v1-UNOFFICIAL.zip
+(md5 eba0bbd593c733a6f49ccc6ab4d63ac2, собран из в8, прошит для проверки 2026-11-10, RC=0).
+Папка создана 2026-11-10 по команде.
+
+План проверок после прошивки (не сделано):
+- часовой пояс из мастера применяется (правило polkit 50-m52xq-timedate.rules), права /etc/polkit-1/rules.d после установщика;
+- метка /etc/m52xq/lomiri-release = «postmarketos-lomiri v1»;
+- WPSS: точка доступа пропадает во время сна (в pm 2026-11-06 так падал WPSS: Long MAC awake / mhi_issue_request).
+
+Проверено на релизе v1 (2026-11-10 14:3x EET):
+- ✅ Часовой пояс из мастера применился: systemd-timedated «Changed time zone to 'Europe/Kiev'» 14:32:56 (нажатие «Далее»),
+  /etc/localtime -> ../usr/share/zoneinfo/Europe/Kiev, EET +0200; часы рабочего стола верные. Окно «Настроек», открытое раньше,
+  показывало старое время (не обновляется после смены пояса). Мои проверки 14:32:20/14:32:36 были до нажатия «Далее» — ложный вывод.
+- ✅ /etc/polkit-1/rules.d после установщика: drwxr-x--- root:polkitd (права не испорчены), 50-m52xq-timedate.rules на месте.
+- ✅ /etc/m52xq/lomiri-release = «postmarketos-lomiri v1».

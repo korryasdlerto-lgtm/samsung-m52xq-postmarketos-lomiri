@@ -1,0 +1,67 @@
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-frameworks
+maintainer="team/kde <bribbers@disroot.org>"
+pkgname=kirigami
+pkgver=6.31.0
+pkgrel=90
+pkgdesc="A QtQuick based components set"
+# armhf blocked by qt6-qtdeclarative
+arch="all !armhf"
+url="https://community.kde.org/Frameworks"
+license="LGPL-2.0-only"
+depends="qt6-qtsvg"
+depends_dev="
+	kconfig-dev
+	kcoreaddons-dev
+	kwindowsystem-dev
+	openmp-dev
+	qt6-qtbase-dev
+	qt6-qtdeclarative-dev
+	qt6-qtsvg-dev
+	"
+makedepends="$depends_dev
+	doxygen
+	extra-cmake-modules
+	graphviz
+	qt6-qtdeclarative-private-dev
+	qt6-qttools-dev
+	samurai
+	"
+checkdepends="xwayland-run"
+subpackages="$pkgname-dev $pkgname-lang"
+_repo_url="https://invent.kde.org/frameworks/kirigami.git"
+source="https://download.kde.org/stable/frameworks/${pkgver%.*}/kirigami-$pkgver.tar.xz
+	kirigami-0001-columnview-no-empty-slide-anim-6.31.patch
+	"
+options="!check" # QML tests are just for developers
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DBUILD_TESTING=OFF \
+		-DBUILD_EXAMPLES=OFF
+	cmake --build build
+}
+
+check() {
+	# qml tests are developer tests
+	wlheadless-run -- ctest --test-dir build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+dev() {
+	default_dev
+
+	amove usr/lib/qt6/metatypes
+	amove usr/share/kdevappwizard
+}
+
+sha512sums="
+57057916c275844150d4d6a2113ddec3091d88ec5f1fef36810e77b5a3d79e5f45ffbb98c054b60d44cbcacb36521cae7a46d1b96ecd3e2f82be199025334134  kirigami-6.31.0.tar.xz
+a3c1311eaf6d63a407d8c5dcadb51726e6e61799ada34025e5bdb71afbb882a0cfc7d8fce21831584564f72c56c477191d5a1c07b02db9708c0997cb8057813e  kirigami-0001-columnview-no-empty-slide-anim-6.31.patch
+"

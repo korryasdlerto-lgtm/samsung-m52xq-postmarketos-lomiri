@@ -173,6 +173,9 @@ StyledItem {
 
     // For autopilot consumption
     readonly property string focusedApplicationId: ApplicationManager.focusedApplicationId
+    // m52xq в6 (from classic): during a call with the dialer in front its own buttons answer: the call notification (a modal snap
+    // decision) is hidden and does not block the touches; with another app in front the snap decision with its buttons is shown
+    readonly property bool m52xqDialerFront: callManager.hasCalls && focusedApplicationId === "org.kde.plasma.dialer"
 
     // Note when greeter is waiting on PAM, so that we can disable edges until
     // we know which user data to show and whether the session is locked.
@@ -245,6 +248,25 @@ StyledItem {
     }
     readonly property var callManager: QtObject {
         readonly property bool hasCalls: m52xqCallSettings.active
+        // m52xq в6 (from classic): the blue call bar (Panel/ActiveCallHint) shows foregroundCall.elapsedTime and the contact of
+        // foregroundCall.phoneNumber; both come from ModemManager through m52xq-incall-proximity (keys active-since, number)
+        readonly property var foregroundCall: hasCalls ? m52xqCall : null
+        readonly property var backgroundCall: null
+    }
+    QtObject {
+        id: m52xqCall
+        property int elapsedTime: 0
+        readonly property string phoneNumber: m52xqCallSettings.number
+        readonly property bool isConference: false
+    }
+    Timer {
+        // seconds since the call was answered (0 while dialing / ringing)
+        interval: 1000
+        repeat: true
+        triggeredOnStart: true
+        running: callManager.hasCalls && m52xqCallSettings.activeSince > 0
+        onTriggered: m52xqCall.elapsedTime = Math.max(0, Math.floor(Date.now() / 1000) - m52xqCallSettings.activeSince)
+        onRunningChanged: if (!running) m52xqCall.elapsedTime = 0
     }
 
     readonly property alias greeter: greeterLoader.item
@@ -415,7 +437,7 @@ StyledItem {
 
             allowInteractivity: (!greeter || !greeter.shown)
                                 && panel.indicators.fullyClosed
-                                && !notifications.useModal
+                                && (!notifications.useModal || shell.m52xqDialerFront)
                                 && !launcher.takesFocus
 
             suspended: greeter.shown
@@ -469,7 +491,7 @@ StyledItem {
             topMargin: panel.panelHeight
             leftMargin: (launcher.lockedByUser && launcher.lockAllowed) ? launcher.panelWidth : 0
         }
-        z: notifications.useModal || panel.indicators.shown || wizard.active || tutorial.running || launcher.drawerShown ? overlay.z + 1 : overlay.z - 1
+        z: (notifications.useModal && !shell.m52xqDialerFront) || panel.indicators.shown || wizard.active || tutorial.running || launcher.drawerShown ? overlay.z + 1 : overlay.z - 1
     }
 
     Loader {
@@ -569,6 +591,23 @@ StyledItem {
         target: callManager
 
         function onHasCallsChanged() {
+            // m52xq 003 в7 (2026-11-10): a call that came while locked made the dialer the "locked app" over the lock screen (edge
+            // swipes and the shade off there); nothing cleared it at the end of the call (lomiri-dialer-app returned to the greeter
+            // itself, plasma-dialer does not), so after the call the dialer stayed stuck until a lock / unlock. Back to the lock screen.
+            if (!callManager.hasCalls) {
+                if (greeter.lockedApp === "org.kde.plasma.dialer") {
+                    greeter.lockedApp = "";
+                    if (greeter.locked)
+                        greeter.forceShow();
+                }
+                return;
+            }
+            // m52xq в6 (from classic): with the screen unlocked there was no window for an incoming call (only the dialer's
+            // notification): bring the dialer to the front here too, as pmOS does
+            if (!greeter.locked && callManager.hasCalls) {
+                startApp("org.kde.plasma.dialer");
+                return;
+            }
             if (greeter.locked && callManager.hasCalls && greeter.lockedApp !== "org.kde.plasma.dialer") {
                 // We just received an incoming call while locked.  The
                 // indicator will have already launched lomiri-dialer-app for
@@ -861,13 +900,16 @@ StyledItem {
 
         MouseArea { // modal notifications prevent interacting with other contents
             anchors.fill: parent
-            visible: notifications.useModal
+            visible: notifications.useModal && !shell.m52xqDialerFront
             enabled: visible
         }
 
         Notifications {
             id: notifications
 
+            // m52xq в6 (from classic): transparent and not touchable, but alive: visible:false destroyed the delegate and its ringtone
+            opacity: shell.m52xqDialerFront ? 0 : 1
+            enabled: !shell.m52xqDialerFront
             model: NotificationBackend.Model
             margin: units.gu(1)
             hasMouse: shell.hasMouse

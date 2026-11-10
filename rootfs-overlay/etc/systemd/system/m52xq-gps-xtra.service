@@ -1,0 +1,8 @@
+[Unit]
+Description=M52XQ: download and inject GNSS XTRA data into the modem
+After=ModemManager.service m52xq-modem-setup.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/m52xq-gps-xtra

@@ -1,0 +1,144 @@
+#!/usr/bin/python3
+# M52XQ (убунтутач24/003, Lomiri): GPS for lomiri-location-service (Settings > Security > Location, the location
+# indicator, apps through the Lomiri Qt position plugin). Its default provider is the Android GPS HAL (none on a
+# mainline kernel) and its geoclue provider speaks GeoClue 1, so it found no source ("Не обнаружено"). Our GNSS is the
+# modem engine in ModemManager (m52xq-gps on/off, NMEA): this bridge runs gpsd on a pseudo terminal and writes the
+# NMEA of ModemManager into it every second while lomiri-location-service is "active" (a client wants positions);
+# the service uses gpsd::Provider (localhost:2947). The engine is switched on then and off again 30 s after the last
+# request, only if it was off before (GeoClue apps such as Organic Maps switch it themselves).
+# 003 в7 (2026-11-09): the gpsd::Provider of lomiri-location-service loses its gpsd connection while there is no fix
+# ("GPSD Error: unknown error" every second, then "gps_sock_send() write -1") and never reconnects: the apps got no
+# position even after the fix. Its journal is watched here; the service is restarted (at most every 120 s) on a
+# failed write or 10 errors in a row. A restart was checked live: positions reach Pure Maps again.
+import fcntl, os, subprocess, time, tty
+from gi.repository import Gio, GLib
+
+LLS = 'com.lomiri.location.Service'
+MM = 'org.freedesktop.ModemManager1'
+LOC = MM + '.Modem.Location'
+NMEA_SOURCE = 4		# MM_MODEM_LOCATION_SOURCE_GPS_NMEA
+IDLE_OFF = 30		# s
+bus = Gio.bus_get_sync(Gio.BusType.SYSTEM)
+
+
+def log(msg):
+	print('m52xq-gnss-gpsd: ' + msg, flush=True)
+
+
+def lls_state():
+	try:
+		v = bus.call_sync(LLS, '/com/lomiri/location/Service', 'org.freedesktop.DBus.Properties', 'Get',
+			GLib.Variant('(ss)', (LLS, 'State')), None, Gio.DBusCallFlags.NONE, 2000, None)
+		return v.unpack()[0]
+	except GLib.Error:
+		return ''
+
+
+def gnss_modem():
+	try:
+		objs = bus.call_sync(MM, '/org/freedesktop/ModemManager1', 'org.freedesktop.DBus.ObjectManager',
+			'GetManagedObjects', None, None, Gio.DBusCallFlags.NONE, 3000, None).unpack()[0]
+	except GLib.Error:
+		return None
+	for path, ifaces in objs.items():
+		if LOC in ifaces and ifaces[LOC].get('Capabilities', 0) & NMEA_SOURCE:
+			return path
+	return None
+
+
+def nmea(path):
+	try:
+		loc = bus.call_sync(MM, path, LOC, 'GetLocation', None, None, Gio.DBusCallFlags.NONE, 3000, None).unpack()[0]
+	except GLib.Error:
+		return ''
+	return loc.get(NMEA_SOURCE, '') or ''
+
+
+# 003 в7 (2026-11-09 22:2x): ModemManager returns the last sentence of each type in no fixed order (GSA, $PQ..., RMC, GSV,
+# GGA). gpsd splits the stream into epochs by the order of the sentences, so every second it reported a TPV without a fix
+# next to the one with the fix (modes 2,1,2,1...) and lomiri-location-service mostly saw "no fix". In the NMEA order
+# GGA, GSA, GSV, RMC (only these, without the modem's $PQ... sentences) gpsd reports a steady 3D fix (checked on a second
+# gpsd instance with the same data: 3,3,3,3...).
+NMEA_ORDER = {'GGA': 0, 'GSA': 1, 'GSV': 2, 'RMC': 3, 'VTG': 4}
+
+
+def nmea_ordered(text):
+	lines = [l.strip() for l in text.replace('\r', '\n').split('\n') if l.strip().startswith('$')]
+	std = [l for l in lines if l[3:6] in NMEA_ORDER]
+	return sorted(std, key=lambda l: (NMEA_ORDER[l[3:6]], lines.index(l)))
+
+
+def gps(cmd):
+	return subprocess.run(['/usr/local/bin/m52xq-gps', cmd], capture_output=True, text=True, timeout=30).stdout.strip()
+
+
+LLS_UNIT = 'lomiri-location-service.service'
+RESTART_GAP = 120	# s
+
+
+def lls_journal():
+	p = subprocess.Popen(['journalctl', '-f', '-n0', '-o', 'cat', '-u', LLS_UNIT], stdout=subprocess.PIPE)
+	fl = fcntl.fcntl(p.stdout, fcntl.F_GETFL)
+	fcntl.fcntl(p.stdout, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+	return p
+
+
+def lls_lines(p, buf):
+	try:
+		d = os.read(p.stdout.fileno(), 65536)
+	except BlockingIOError:
+		return buf, []
+	buf += d
+	*lines, rest = buf.split(b'\n')
+	return rest, [l.decode(errors='ignore') for l in lines]
+
+
+def main():
+	master, slave = os.openpty()
+	tty.setraw(slave)
+	pts = os.ttyname(slave)
+	gpsd = subprocess.Popen(['gpsd', '-N', '-n', '-b', pts])
+	log('gpsd on %s (pid %d)' % (pts, gpsd.pid))
+	ours, last_active, modem = False, 0.0, None
+	jp, jbuf, errs, last_restart = lls_journal(), b'', 0, 0.0
+	while True:
+		if jp.poll() is not None:
+			jp, jbuf = lls_journal(), b''
+		jbuf, lines = lls_lines(jp, jbuf)
+		bad = False
+		for l in lines:
+			if 'GPSD Error' in l:
+				errs += 1
+			elif 'gps_sock_send() write -1' in l:
+				bad = True
+			elif l.strip():
+				errs = 0
+		if (bad or errs >= 10) and time.monotonic() - last_restart > RESTART_GAP:
+			log('lomiri-location-service lost gpsd (%s): restarting it' % ('write failed' if bad else '%d errors' % errs))
+			subprocess.run(['systemctl', 'restart', LLS_UNIT], timeout=60)
+			last_restart, errs = time.monotonic(), 0
+		if gpsd.poll() is not None:
+			log('gpsd exited, restarting')
+			gpsd = subprocess.Popen(['gpsd', '-N', '-n', '-b', pts])
+		now = time.monotonic()
+		if lls_state() == 'active':
+			last_active = now
+			if not ours and gps('status') != 'on':
+				ours = gps('on') == 'on'
+				log('GNSS engine on' if ours else 'GNSS engine did not start')
+			modem = modem or gnss_modem()
+			text = nmea(modem) if modem else ''
+			if not text:
+				modem = None
+			else:
+				out = nmea_ordered(text)
+				if out:
+					os.write(master, ('\r\n'.join(out) + '\r\n').encode())
+		elif ours and now - last_active > IDLE_OFF:
+			gps('off')
+			ours = False
+			log('GNSS engine off (no request for %d s)' % IDLE_OFF)
+		time.sleep(1)
+
+
+main()

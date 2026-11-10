@@ -1,0 +1,53 @@
+--- a/plasma-dialer/src/contactcontroller.cpp.pre-vcardfor	2026-10-20 12:07:43.000000000 +0300
++++ b/plasma-dialer/src/contactcontroller.cpp	2026-11-09 17:15:22.887332596 +0200
+@@ -35,3 +35,23 @@
+     pn.setType(KContacts::PhoneNumber::Cell);
+     return pn;
+ }
++
++QByteArray ContactController::vcardFor(const QString &name, const QString &number)
++{
++    KContacts::Addressee a;
++    const QString n = name.trimmed();
++    a.setFormattedName(n);
++    a.setGivenName(n);
++    // m52xq 003 в6: the dial pad shows the number formatted ("444-4"); the call history and the contact lookup use the plain
++    // number ("4444"): keep only digits, + * #, otherwise the name never showed in the call history
++    QString num;
++    for (const QChar c : number)
++        if (c.isDigit() || c == QLatin1Char('+') || c == QLatin1Char('*') || c == QLatin1Char('#'))
++            num.append(c);
++    if (!num.isEmpty()) {
++        KContacts::PhoneNumber pn(num);
++        pn.setType(KContacts::PhoneNumber::Cell);
++        a.insertPhoneNumber(pn);
++    }
++    return KContacts::VCardConverter().createVCard(a);
++}
+--- a/plasma-dialer/src/contactcontroller.h.pre-vcardfor	2026-10-20 12:07:43.000000000 +0300
++++ b/plasma-dialer/src/contactcontroller.h	2026-11-09 17:07:05.114048309 +0200
+@@ -31,6 +31,8 @@
+     Q_INVOKABLE QByteArray addresseeToVCard(const KContacts::Addressee &addressee);
+     Q_INVOKABLE KContacts::Addressee emptyAddressee();
+     Q_INVOKABLE KContacts::PhoneNumber createPhoneNumber(const QString &number);
++    // m52xq 003 в6 (from pm v2 0007): the vCard from plain strings: writes to the value-type addressee.formattedName were dropped in QML (N:;;;;)
++    Q_INVOKABLE QByteArray vcardFor(const QString &name, const QString &number);
+ 
+ private:
+     KConfig m_dataResource;
+--- a/plasma-dialer/src/qml/AddContactPage.qml.pre-vcardfor	2026-10-27 02:19:38.249145953 +0200
++++ b/plasma-dialer/src/qml/AddContactPage.qml	2026-11-09 17:12:38.635833705 +0200
+@@ -116,8 +116,12 @@
+                 position: Controls.DialogButtonBox.Footer
+ 
+                 onAccepted: {
++                    // m52xq 003 в6: take the text before save(): save() rebinds root.addressee and the name field (bound to its empty
++                    // formattedName) was cleared before the vCard was made (N:;;;; again)
++                    var contactName = name.text
++                    var contactNumber = phoneField.text
+                     root.save();
+-                    if (!KPeople.PersonPluginManager.addContact({ "vcard": ContactController.addresseeToVCard(addressee) }))
++                    if (!KPeople.PersonPluginManager.addContact({ "vcard": ContactController.vcardFor(contactName, contactNumber) }))
+                                 console.warn("could not create contact")
+ 
+                     Kirigami.PageStack.pop()

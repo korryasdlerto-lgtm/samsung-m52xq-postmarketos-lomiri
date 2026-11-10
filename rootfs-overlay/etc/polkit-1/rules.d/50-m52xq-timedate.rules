@@ -1,0 +1,12 @@
+// M52XQ (003 в8, 2026-11-10): the Lomiri wizard and Settings > Time & Date set the time zone through systemd-timedated
+// (org.freedesktop.timedate1.SetTimezone) without a password prompt; the stock policy is auth_admin_keep, so the request was
+// refused silently and the phone stayed on UTC (Kyiv chosen in the wizard, 01:50 shown instead of 03:50).
+// The active local user of the phone (group wheel) may change the time zone, the time and NTP.
+polkit.addRule(function(action, subject) {
+	if ((action.id == "org.freedesktop.timedate1.set-timezone" ||
+	     action.id == "org.freedesktop.timedate1.set-time" ||
+	     action.id == "org.freedesktop.timedate1.set-ntp") &&
+	    subject.local && subject.active && subject.isInGroup("wheel")) {
+		return polkit.Result.YES;
+	}
+});

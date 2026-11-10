@@ -2,3 +2,11 @@
 # "settings:///..." with xdg-open, which gave it to the default web browser (Firefox): System Settings handles it
 [Default Applications]
 x-scheme-handler/settings=lomiri-system-settings.desktop
+# m52xq (003 в6): Megapixels opens the last photo / video with the default application; there was none for JPEG (no
+# mimeinfo.cache), the thumbnail button did nothing
+image/jpeg=lomiri-gallery-app.desktop
+image/jpg=lomiri-gallery-app.desktop
+image/png=lomiri-gallery-app.desktop
+video/mp4=lomiri-mediaplayer-app.desktop
+video/x-matroska=lomiri-mediaplayer-app.desktop
+video/webm=lomiri-mediaplayer-app.desktop

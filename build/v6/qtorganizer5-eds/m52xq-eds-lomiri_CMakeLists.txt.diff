@@ -1,0 +1,45 @@
+--- a/eds-lomiri/CMakeLists.txt
++++ b/eds-lomiri/CMakeLists.txt
+@@ -1,3 +1,4 @@
++# m52xq 003 в6: the e-source-lomiri library does not use folks: dropped
+ cmake_minimum_required(VERSION 3.5)
+ 
+ project(evolution-data-server-lomiri VERSION 0.2.1 LANGUAGES C)
+@@ -10,8 +11,6 @@
+ pkg_check_modules(GLIB REQUIRED glib-2.0>=2.32)
+ pkg_check_modules(GIO REQUIRED gio-2.0>=2.32)
+ pkg_check_modules(EDATASERVER REQUIRED libedataserver-1.2>=3.8)
+-pkg_check_modules(FOLKS REQUIRED folks>=0.9.0)
+-pkg_check_modules(FOLKS_EDS REQUIRED folks-eds)
+ pkg_check_modules(GLIB_ACCOUNTS REQUIRED libaccounts-glib)
+ 
+ include_directories(
+@@ -19,7 +18,7 @@
+     ${GLIB_INCLUDE_DIRS}
+     ${GLIB_ACCOUNTS_INCLUDE_DIRS}
+     ${GIO_INCLUDE_DIRS}
+-    ${FOLKS_EDS_INCLUDE_DIRS}
++    ${EDATASERVER_INCLUDE_DIRS}
+ )
+ 
+ set(LOMIRI_SOURCE_LIB edataserver-source-lomiri)
+@@ -49,8 +48,8 @@
+ target_link_libraries(${LOMIRI_SOURCE_LIB}
+     ${GLIB_LIBRARIES}
+     ${GLIB_ACCOUNTS_LIBRARIES}
++    ${EDATASERVER_LIBRARIES}
+     ${GIO_LIBRARIES}
+-    ${FOLKS_EDS_LIBRARIES}
+ )
+ install(TARGETS ${LOMIRI_SOURCE_LIB}
+     LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
+@@ -76,8 +75,8 @@
+ target_link_libraries(${MODULE_LOMIRI_SOURCES}
+     ${GLIB_LIBRARIES}
+     ${GLIB_ACCOUNTS_LIBRARIES}
++    ${EDATASERVER_LIBRARIES}
+     ${GIO_LIBRARIES}
+-    ${FOLKS_EDS_LIBRARIES}
+     ${LOMIRI_SOURCE_LIB}
+ )
+ install(TARGETS ${MODULE_LOMIRI_SOURCES}

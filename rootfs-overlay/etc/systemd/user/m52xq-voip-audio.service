@@ -1,0 +1,12 @@
+[Unit]
+Description=M52XQ: Telegram / VoIP call audio route (earpiece while a call is answered, loud speaker for the ring)
+# 003 в6: Lomiri does not run the XDG autostart entry (/etc/xdg/autostart/m52xq-voip-audio.desktop), the script never ran
+After=graphical-session.target
+
+[Service]
+ExecStart=/usr/local/bin/m52xq-voip-audio
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target

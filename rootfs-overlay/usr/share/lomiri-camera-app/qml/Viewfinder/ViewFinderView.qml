@@ -122,10 +122,19 @@ FocusScope {
                TODO: if optical zoom is available, maximumZoom should be the combined
                range of optical and digital zoom and currentZoom should adjust the two
                transparently based on the value. */
-        // m52xq: camerabin's digital zoom crops with videocrop, which crashed (SIGSEGV) on the libcamerasrc frames:
-        // no zoom for now (the pinch does nothing)
-        property real currentZoom: 1.0
-        readonly property real maximumZoom: 1.0
+        // m52xq: camerabin's digital zoom crops with videocrop, which crashed (SIGSEGV) on the libcamerasrc frames.
+        // classic в8: the camera source (m52xqcamsrc) zooms itself: it crops the middle of every frame and scales it up
+        // (viewfinder, photo, video). The factor 1 + currentZoom (up to 4x) goes to it as the file /run/user/10000/m52xq-zoom;
+        // written at the start too (1.000), so a factor left by an earlier run is never applied.
+        property real currentZoom: 0.0
+        readonly property real maximumZoom: 3.0
+        function m52xqWriteZoom() {
+            var xhr = new XMLHttpRequest();
+            xhr.open("PUT", "file:///run/user/10000/m52xq-zoom");
+            xhr.send((1.0 + currentZoom).toFixed(3));
+        }
+        onCurrentZoomChanged: m52xqWriteZoom()
+        Component.onCompleted: m52xqWriteZoom()
         property bool switchInProgress: false
         property bool photoCaptureInProgress: false
         property bool timedCaptureInProgress: false
@@ -215,6 +224,7 @@ FocusScope {
 
         ShaderEffectSource {
             id: viewFinderGrab
+            rotation: (360 - viewFinder.rotation) % 360	// m52xq: the snapshot shown during a camera switch is turned like the viewfinder (it lay on its side in portrait); it is mirrored by its Y flip, so the opposite angle
             live: false
             sourceItem: viewFinder
 

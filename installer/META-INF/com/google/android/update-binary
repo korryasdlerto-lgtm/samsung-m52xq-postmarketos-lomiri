@@ -99,12 +99,11 @@ abort() {
 }
 
 ui_print "======================================"
-ui_print " postmarketOS mainline lomiri v5 — m52xq"
-ui_print " boot + vendor_boot + system(rootfs-lomiri_0.6.2)"
-ui_print " UFS, Touch, GPU, Brightness, Audio(earpiece, speaker, mic), WiFi, BT"
+ui_print " postmarketOS mainline lomiri v1 — m52xq"
+ui_print " boot+vendor_boot+dtbo+system(rootfs-lomiri_0.6.2)"
 ui_print " Build by Asdlerto Korry"
 ui_print " korryasdlerto@gmail.com"
-ui_print " https://github.com/korryasdlerto-lgtm/samsung-m52xq-mainline"
+ui_print " https://github.com/korryasdlerto-lgtm/samsung-m52xq-postmarketos-lomiri"
 ui_print "======================================"
 ui_print ""
 
@@ -125,8 +124,21 @@ done
 ui_print "- boot partition: $BOOT_PART"
 ui_print "- vendor_boot partition: $VBOOT_PART"
 
-BOOT_IMG_NAME="firmware/boot_v241_nfc.img"
-VBOOT_IMG_NAME="firmware/vendor_boot_v238_nfc_se9.img"
+# v2 (в47): kernel 7.1.13 (boot v254: SM5714 fuel gauge NTC, s3fwrn5 pvdd supply) + vendor_boot local-v34
+# (upstream-style DTS db35c2f3: touch/BT/NFC supplies, SD pinctrl). в46: boot v252 + vendor_boot local-v29 (DTB built from the upstream-style
+# sm7325-samsung-m52xq.dts plus the local nodes). This DTB is applied by ABL together with
+# dtbo-frag (a dtbo with one harmless fragment), so the dtbo partition is written too.
+BOOT_IMG_NAME="firmware/boot_v256_k7.1.13_panel-sleep.img"
+VBOOT_IMG_NAME="firmware/vendor_boot_m52xq-local-v35-rtc.img"
+DTBO_IMG_NAME="firmware/dtbo-frag-m52xq.img"
+
+# --- Найти раздел dtbo ---
+DTBO_PART=""
+for p in /dev/block/by-name/dtbo /dev/block/bootdevice/by-name/dtbo /dev/block/platform/*/by-name/dtbo; do
+    [ -b "$p" ] && DTBO_PART="$p" && break
+done
+[ -z "$DTBO_PART" ] && abort "dtbo partition not found (by-name/dtbo missing)"
+ui_print "- dtbo partition: $DTBO_PART"
 
 # busybox/toybox unzip inside TWRP does not reliably return a non-zero
 # exit code for "name not found in archive" the way GNU unzip does (found
@@ -136,14 +148,70 @@ VBOOT_IMG_NAME="firmware/vendor_boot_v238_nfc_se9.img"
 # no-op'ing onto whatever was already flashed before.
 unzip -l "$ZIP" "$BOOT_IMG_NAME" | grep -q "$BOOT_IMG_NAME" || abort "$BOOT_IMG_NAME not found in zip"
 unzip -l "$ZIP" "$VBOOT_IMG_NAME" | grep -q "$VBOOT_IMG_NAME" || abort "$VBOOT_IMG_NAME not found in zip"
+unzip -l "$ZIP" "$DTBO_IMG_NAME" | grep -q "$DTBO_IMG_NAME" || abort "$DTBO_IMG_NAME not found in zip"
+
+# v1 (в45): the IPA firmware (yupik_ipa_fws.*, proprietary) is not in the zip. The kernel needs it in the initramfs
+# (IPA is built in and probes before the rootfs is mounted), so it is appended to the ramdisk of boot.img here, from
+# this phone's own apnhlos partition, as a second uncompressed newc cpio archive (the kernel unpacks every archive).
+m52xq_boot_add_ipa() {
+    IMG="$1"; A=/tmp/m52xq-apn-boot; ST=/tmp/m52xq-ipa
+    rm -rf "$ST"; mkdir -p "$A" "$ST/usr/lib/firmware" || return 1
+    got=0
+    for p in /dev/block/by-name/apnhlos /dev/block/bootdevice/by-name/apnhlos; do
+        [ -b "$p" ] || continue
+        if mount -t vfat -o ro "$p" "$A"; then
+            [ -f "$A/image/yupik_ipa_fws.mdt" ] && cp "$A"/image/yupik_ipa_fws.* "$ST/usr/lib/firmware/" && got=1
+            umount "$A"
+        fi
+        break
+    done
+    rmdir "$A" 2>/dev/null
+    [ "$got" = 1 ] || return 1
+    chmod 644 "$ST"/usr/lib/firmware/*
+    ks=$(od -An -tu4 -j8 -N4 "$IMG" | tr -d ' ')
+    rs=$(od -An -tu4 -j12 -N4 "$IMG" | tr -d ' ')
+    roff=$(( 4096 + (ks + 4095) / 4096 * 4096 ))
+    end=$(( roff + rs ))
+    head -c "$end" "$IMG" > "$IMG.new" || return 1
+    n=$(( (4 - end % 4) % 4 ))
+    [ "$n" -gt 0 ] && dd if=/dev/zero bs=1 count="$n" 2>/dev/null >> "$IMG.new"
+    # gzip compressed: the bootloader puts the 70-byte vendor_boot ramdisk in front of this ramdisk, so an uncompressed
+    # cpio would not start 4-byte aligned in the initrd and the kernel stops with "invalid magic" (v1 test 2026-11-01);
+    # a gzip member is recognised at any offset
+    ( cd "$ST" && find usr/lib/firmware -type f | sort | cpio -o -H newc | gzip -9 ) >> "$IMG.new" || return 1
+    sz=$(stat -c %s "$IMG.new")
+    nrs=$(( sz - roff ))
+    n=$(( (4096 - sz % 4096) % 4096 ))
+    [ "$n" -gt 0 ] && dd if=/dev/zero bs=1 count="$n" 2>/dev/null >> "$IMG.new"
+    h=$(printf '%08x' "$nrs")
+    printf '%s' "${h:6:2}${h:4:2}${h:2:2}${h:0:2}" | xxd -r -p | dd of="$IMG.new" bs=1 seek=12 conv=notrunc 2>/dev/null
+    [ "$(od -An -tu4 -j12 -N4 "$IMG.new" | tr -d ' ')" = "$nrs" ] || return 1
+    mv "$IMG.new" "$IMG"
+    rm -rf "$ST"
+    return 0
+}
 
 next_step 0.10 5
 ui_print "- Flashing boot.img..."
-unzip -p "$ZIP" "$BOOT_IMG_NAME" > "$BOOT_PART" || abort "failed to write $BOOT_IMG_NAME"
+unzip -p "$ZIP" "$BOOT_IMG_NAME" > /tmp/m52xq-boot.img || abort "failed to extract $BOOT_IMG_NAME"
+if m52xq_boot_add_ipa /tmp/m52xq-boot.img; then
+    ui_print "  IPA firmware taken from this phone's apnhlos partition"
+else
+    ui_print "  WARNING: no IPA firmware on apnhlos -- mobile data will not work"
+fi
+cat /tmp/m52xq-boot.img > "$BOOT_PART" || abort "failed to write $BOOT_IMG_NAME"
+rm -f /tmp/m52xq-boot.img /tmp/m52xq-boot.img.new
 
 next_step 0.10 5
 ui_print "- Flashing vendor_boot.img..."
 unzip -p "$ZIP" "$VBOOT_IMG_NAME" > "$VBOOT_PART" || abort "failed to write $VBOOT_IMG_NAME"
+
+# v2 (в46): the stock Samsung dtbo targets the downstream DTB; with the local-v29 DTB ABL is
+# only tested with dtbo-frag. The old dtbo contents are not kept here -- back up dtbo in TWRP
+# before flashing if you want to go back to Android.
+next_step 0.02 1
+ui_print "- Flashing dtbo (dtbo-frag)..."
+unzip -p "$ZIP" "$DTBO_IMG_NAME" > "$DTBO_PART" || abort "failed to write $DTBO_IMG_NAME"
 
 # --- Найти раздел system -- сюда пишем ВЕСЬ samsung-m52xq.img ---
 SYSTEM_DEV=""
@@ -245,6 +313,7 @@ next_step 0.10 2
 ui_print "- Done."
 ui_print "  boot.img written to $BOOT_PART"
 ui_print "  vendor_boot.img written to $VBOOT_PART"
+ui_print "  dtbo (dtbo-frag) written to $DTBO_PART"
 ui_print "  samsung-m52xq.img written to $SYSTEM_DEV"
 ui_print ""
 ui_print "  userdata was NOT touched."
@@ -377,6 +446,18 @@ if [ -n "$SYSTEM_ROOT_PART" ]; then
                     ln -sf ../m52xq-password-backup.path \
                         "$ROOTFS_MNT/etc/systemd/system/multi-user.target.wants/m52xq-password-backup.path"
                 fi
+                # v2 (в46): rebuild the module index for the running kernel once on the first boot
+                # (the shipped modules.dep may not match the injected .ko set)
+                if [ -f "$ROOTFS_MNT/etc/systemd/system/m52xq-depmod-firstboot.service" ]; then
+                    ln -sf ../m52xq-depmod-firstboot.service \
+                        "$ROOTFS_MNT/etc/systemd/system/sysinit.target.wants/m52xq-depmod-firstboot.service"
+                fi
+                # v2 (в46): GPS after a reboot = the state it had before (user unit)
+                if [ -f "$ROOTFS_MNT/etc/systemd/user/m52xq-gps-restore.service" ]; then
+                    mkdir -p "$ROOTFS_MNT/etc/systemd/user/default.target.wants"
+                    ln -sf ../m52xq-gps-restore.service \
+                        "$ROOTFS_MNT/etc/systemd/user/default.target.wants/m52xq-gps-restore.service"
+                fi
                 # v28: touch is on the real SE13 bus (i2c@a94000) now; the old
                 # i2c-gpio rebind workaround only fails, remove it if the
                 # rootfs image still carries it.
@@ -401,6 +482,11 @@ if [ -n "$SYSTEM_ROOT_PART" ]; then
                 if [ -f "$ROOTFS_MNT/etc/systemd/system/m52xq-bt-firmware.service" ]; then
                     ln -sf ../m52xq-bt-firmware.service \
                         "$ROOTFS_MNT/etc/systemd/system/multi-user.target.wants/m52xq-bt-firmware.service"
+                fi
+                # в50: re-open the speaker when the TFA9878 setup fails (GPI DMA error at PCM start)
+                if [ -f "$ROOTFS_MNT/etc/systemd/system/m52xq-tfa-guard.service" ]; then
+                    ln -sf ../m52xq-tfa-guard.service \
+                        "$ROOTFS_MNT/etc/systemd/system/multi-user.target.wants/m52xq-tfa-guard.service"
                 fi
                 # v38: Venus video decoder (venus-core also releases sync_state of the interconnects)
                 if [ -f "$ROOTFS_MNT/etc/systemd/system/m52xq-venus.service" ]; then
@@ -428,6 +514,13 @@ if [ -n "$SYSTEM_ROOT_PART" ]; then
                     ln -sf ../m52xq-app-reaper.service \
                         "$ROOTFS_MNT/etc/systemd/system/sleep.target.wants/m52xq-app-reaper.service"
                 fi
+                # 2026-11-09 (003 в7 / pm в51): GNSS XTRA data (download every 3 days, inject after boot) - without it a cold
+                # start gets no fix even at a window
+                if [ -f "$ROOTFS_MNT/etc/systemd/system/m52xq-gps-xtra.timer" ]; then
+                    mkdir -p "$ROOTFS_MNT/etc/systemd/system/timers.target.wants"
+                    ln -sf ../m52xq-gps-xtra.timer \
+                        "$ROOTFS_MNT/etc/systemd/system/timers.target.wants/m52xq-gps-xtra.timer"
+                fi
                 # v42: stop a WPSS (Wi-Fi) crash loop and restart it after a pause (m52xq-wpss-guard)
                 if [ -f "$ROOTFS_MNT/etc/systemd/system/m52xq-wpss-guard.service" ]; then
                     mkdir -p "$ROOTFS_MNT/etc/systemd/system/multi-user.target.wants"
@@ -440,24 +533,32 @@ if [ -n "$SYSTEM_ROOT_PART" ]; then
                     ln -sf ../m52xq-nfc-boot.service \
                         "$ROOTFS_MNT/etc/systemd/system/multi-user.target.wants/m52xq-nfc-boot.service"
                 fi
-                # v5: zip stores a symlink as a copy of the file: every service that landed in a *.wants directory as a regular file
-                # (m52xq-osk-bridge, m52xq-messaging-bridge, m52xq-ringtone, m52xq-sim-slots, m52xq-wow-params ...) is turned back into the
-                # symlink, otherwise it stays disabled. Only for units that exist in /etc/systemd/system (a link must not dangle).
-                for w in "$ROOTFS_MNT"/etc/systemd/system/*.wants; do
-                    [ -d "$w" ] || continue
-                    for f in "$w"/*; do
-                        [ -f "$f" ] && [ ! -L "$f" ] || continue
-                        n=$(basename "$f")
-                        [ -f "$ROOTFS_MNT/etc/systemd/system/$n" ] || continue
-                        rm -f "$f"
-                        ln -sf "../$n" "$f"
-                    done
+                # v43: Wi-Fi WoW knobs of the WCN6750 firmware (m52xq-wow-params: WMI_WOW_ENABLE flags 0x20)
+                if [ -f "$ROOTFS_MNT/etc/systemd/system/m52xq-wow-params.service" ]; then
+                    mkdir -p "$ROOTFS_MNT/etc/systemd/system/multi-user.target.wants"
+                    ln -sf ../m52xq-wow-params.service \
+                        "$ROOTFS_MNT/etc/systemd/system/multi-user.target.wants/m52xq-wow-params.service"
+                fi
+                # v44: retry / idle suspend (m52xq-suspend-guard) and the SMS / telephony daemon restart after a lost notification (m52xq-notify-heal)
+                for u in m52xq-suspend-guard m52xq-notify-heal; do
+                    if [ -f "$ROOTFS_MNT/etc/systemd/system/$u.service" ]; then
+                        mkdir -p "$ROOTFS_MNT/etc/systemd/system/multi-user.target.wants"
+                        ln -sf ../$u.service "$ROOTFS_MNT/etc/systemd/system/multi-user.target.wants/$u.service"
+                    fi
                 done
-                # v5: the backlight is set by m52xq-powerkey (saved level, 180 by default): systemd-backlight restored the saved 0 and raised it
-                # only to 2, the boot splash was almost dark (a zip would turn a symlink to /dev/null into an empty file, so it is made here)
-                ln -sf /dev/null "$ROOTFS_MNT/etc/systemd/system/systemd-backlight@backlight:ae94000.dsi.0.service"
-                # v5: the markers of older archives
-                rm -f "$ROOTFS_MNT/etc/m52xq/lomiri-v3" "$ROOTFS_MNT/etc/m52xq/lomiri-v4"
+                # v44: PulseAudio stuck after a resume -> restart (user unit)
+                if [ -f "$ROOTFS_MNT/etc/systemd/user/m52xq-audio-unstick.service" ]; then
+                    mkdir -p "$ROOTFS_MNT/etc/systemd/user/default.target.wants"
+                    ln -sf ../m52xq-audio-unstick.service \
+                        "$ROOTFS_MNT/etc/systemd/user/default.target.wants/m52xq-audio-unstick.service"
+                fi
+                # v43: sound of notifications (Telegram etc.; mobileshell ignores the sound hints) and the screen on a Telegram call (user units)
+                for u in m52xq-pulseaudio m52xq-notify-sound m52xq-call-screen-wake; do
+                    if [ -f "$ROOTFS_MNT/etc/systemd/user/$u.service" ]; then
+                        mkdir -p "$ROOTFS_MNT/etc/systemd/user/default.target.wants"
+                        ln -sf ../$u.service "$ROOTFS_MNT/etc/systemd/user/default.target.wants/$u.service"
+                    fi
+                done
                 # v39: the removed auto-brightness helper must not survive from an older injection
                 rm -f "$ROOTFS_MNT/usr/local/bin/m52xq-autobrightness-once" \
                     "$ROOTFS_MNT/etc/xdg/autostart/m52xq-autobrightness-once.desktop"
@@ -558,6 +659,60 @@ if [ -n "$SYSTEM_ROOT_PART" ]; then
                     rmdir /tmp/m52xq-modem 2>/dev/null
                     break
                 done
+                # v1 (в45): the other proprietary firmware is not in the zip either; copied from this phone's own
+                # apnhlos (ADSP, GPU zap shader, IPA, Venus) and vendor (Bluetooth, sensor configs) partitions, read-only.
+                FW="$ROOTFS_MNT/usr/lib/firmware"
+                APN_OK=0
+                for p in /dev/block/by-name/apnhlos /dev/block/bootdevice/by-name/apnhlos; do
+                    [ -b "$p" ] || continue
+                    mkdir -p /tmp/m52xq-apn
+                    if mount -t vfat -o ro "$p" /tmp/m52xq-apn; then
+                        I=/tmp/m52xq-apn/image
+                        if [ -f "$I/adsp.mdt" ] && [ -f "$I/vpu20_1v.mdt" ]; then
+                            mkdir -p "$FW/qcom/vpu-2.0"
+                            cp "$I"/adsp.mdt "$I"/adsp.b* "$I"/adspr.jsn "$I"/adsps.jsn "$I"/adspua.jsn \
+                               "$I"/a660_zap.* "$I"/yupik_ipa_fws.* "$FW"/ && APN_OK=1
+                            for f in "$I"/vpu20_1v.*; do
+                                cp "$f" "$FW/qcom/vpu-2.0/venus.${f##*.}" || APN_OK=0
+                            done
+                            cp "$I/vpu20_1v.mdt" "$FW/qcom/vpu-2.0/venus.mbn" || APN_OK=0
+                            chmod 644 "$FW"/adsp* "$FW"/a660_zap.* "$FW"/yupik_ipa_fws.* "$FW"/qcom/vpu-2.0/* 2>/dev/null
+                        fi
+                        umount /tmp/m52xq-apn
+                    fi
+                    rmdir /tmp/m52xq-apn 2>/dev/null
+                    break
+                done
+                if [ "$APN_OK" = "1" ]; then
+                    ui_print "- ADSP / GPU / IPA / Venus firmware taken from this phone's apnhlos partition"
+                else
+                    ui_print "  WARNING: firmware missing on apnhlos -- sound, sensors, GPU or video may not work"
+                fi
+                VEN_OK=0
+                for p in /dev/block/mapper/vendor /dev/mapper/vendor /dev/block/by-name/vendor; do
+                    [ -b "$p" ] || continue
+                    mkdir -p /tmp/m52xq-vendor
+                    if mount -t erofs -o ro "$p" /tmp/m52xq-vendor 2>/dev/null || \
+                       mount -t ext4 -o ro,noload "$p" /tmp/m52xq-vendor 2>/dev/null; then
+                        V=/tmp/m52xq-vendor
+                        if [ -f "$V/firmware/msbtfw11.mbn" ] && [ -d "$V/etc/sensors/config" ]; then
+                            SN="$ROOTFS_MNT/usr/share/qcom/sm7325/Samsung/m52xq/sensors"
+                            mkdir -p "$FW/qca" "$SN/config"
+                            cp "$V"/firmware/msbtfw11.mbn "$V"/firmware/msbtfw11.tlv "$V"/firmware/msnv11.bin "$FW/qca/" && \
+                            cp "$V/etc/sensors/sns_reg_config" "$SN/sns_reg.conf" && \
+                            cp "$V"/etc/sensors/config/*.json "$SN/config/" && VEN_OK=1
+                            chmod 644 "$FW"/qca/* "$SN/sns_reg.conf" "$SN"/config/* 2>/dev/null
+                        fi
+                        umount /tmp/m52xq-vendor
+                    fi
+                    rmdir /tmp/m52xq-vendor 2>/dev/null
+                    [ "$VEN_OK" = "1" ] && break
+                done
+                if [ "$VEN_OK" = "1" ]; then
+                    ui_print "- Bluetooth firmware and sensor configs taken from this phone's vendor partition"
+                else
+                    ui_print "  WARNING: vendor partition not readable -- Bluetooth / sensors may not work"
+                fi
                 if [ "$MODEM_FW_OK" = "1" ]; then
                     ui_print "- Modem firmware taken from this phone's modem partition"
                 else
@@ -614,11 +769,7 @@ if [ -n "$SYSTEM_ROOT_PART" ]; then
                 done
                 [ -n "$(ls -A "$SNS_REG" 2>/dev/null)" ] || \
                     ui_print "  WARNING: no sensor registry in persist -- sensors stay unavailable"
-                # lomiri v1: the fastrpc ids differ between images (Plasma 108:113, this Lomiri-only image 103:105):
-                # take them from the rootfs being flashed
-                FRPC_UID=$(awk -F: '$1=="fastrpc"{print $3}' "$ROOTFS_MNT/etc/passwd")
-                FRPC_GID=$(awk -F: '$1=="fastrpc"{print $3}' "$ROOTFS_MNT/etc/group")
-                chown -R "${FRPC_UID:-108}:${FRPC_GID:-113}" "$SNS_REG"
+                chown -R 108:113 "$SNS_REG"
                 mkdir -p "$ROOTFS_MNT/mnt/userdata"
                 # v10 hotfix: everything injected under home/user/ (e.g.
                 # kscreenlockerrc) lands owned by root, because TWRP's unzip

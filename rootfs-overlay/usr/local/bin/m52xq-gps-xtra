@@ -1,0 +1,48 @@
+#!/bin/sh
+# M52XQ (убунтутач24/003 в7, 2026-11-09): XTRA (predicted satellite orbits) for the modem GNSS engine.
+# Without it a cold start does not get a fix even at a window (24 min, 16 satellites in view, 0 used, no UTC time in
+# $GPRMC); with it the fix came about a minute after the injection. Nothing injected XTRA since the move away from
+# Android (the data left by Android expired). The file is downloaded again when it is older than 3 days, from the
+# servers the modem names (mmcli --location-status), and injected only after a new download or once after a boot:
+# an injection while the engine runs drops the fix for ~2.5 min (checked 21:02 → 21:05), so a fresh file is not
+# injected again.
+# ModemManager answers "Aborted: Failed to receive indication with the server update result", but the modem takes the
+# data (checked: fix after the injection), so that error is ignored. Runs as root from m52xq-gps-xtra.timer.
+D=/var/lib/m52xq; F=$D/xtra3grcej.bin; MAXAGE=259200; DONE=/run/m52xq-gps-xtra-injected
+log() { echo "m52xq-gps-xtra: $*"; }
+# started 30 s after boot (before an app switches the engine on): wait up to 120 s for the modem with the GNSS engine
+M=; i=0
+while [ -z "$M" ] && [ $i -lt 24 ]; do
+	for m in $(mmcli -L 2>/dev/null | grep -o "Modem/[0-9]*" | cut -d/ -f2); do
+		if mmcli -m $m --location-status 2>/dev/null | grep -q "capabilities:.*gps-raw"; then M=$m; break; fi
+	done
+	[ -n "$M" ] || { sleep 5; i=$((i + 1)); }
+done
+[ -n "$M" ] || { log "no modem with a GNSS engine"; exit 0; }
+mkdir -p $D
+age=$MAXAGE
+[ -s $F ] && age=$(( $(date +%s) - $(stat -c %Y $F) ))
+if [ $age -ge $MAXAGE ]; then
+	for u in $(mmcli -m $M --location-status 2>/dev/null | grep -o "https\?://[^ ]*xtra[^ ]*\.bin" | sort -u); do
+		if wget -q -T 20 -O $F.new "$u" && [ "$(stat -c %s $F.new)" -gt 10000 ]; then
+			mv $F.new $F; rm -f $DONE; log "downloaded $u ($(stat -c %s $F) bytes)"; break
+		fi
+		rm -f $F.new
+	done
+fi
+[ -s $F ] || { log "no XTRA file (no network?)"; exit 0; }
+[ -e $DONE ] && exit 0
+# 30 s after boot ModemManager answers "Unsupported" (the modem is not enabled yet, checked 2026-11-09 21:50): retry every
+# 10 s for up to 3 min
+i=0
+while :; do
+	out=$(timeout 60 mmcli -m $M --location-inject-assistance-data=$F 2>&1)
+	case "$out" in *Unsupported*) ;; *) break;; esac
+	i=$((i + 1)); [ $i -ge 18 ] && break
+	sleep 10
+done
+case "$out" in
+*successfully*|*Aborted*) touch $DONE; log "injected into modem $M (file age $(( ($(date +%s) - $(stat -c %Y $F)) / 3600 )) h)";;
+*) log "injection failed: $out";;
+esac
+exit 0

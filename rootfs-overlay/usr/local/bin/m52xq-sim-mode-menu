@@ -54,6 +54,32 @@ choice() {
 		*) run m52xq-sim-mode@dsds.service "Both SIMs are active, mobile data on SIM$data." ;;
 		esac
 		;;
+	dataon | dataoff)
+		# 003 в7: mobile data on/off, the same as the switch in the shade (m52xq-indicator-sim); the state file
+		# XDG_RUNTIME_DIR/m52xq-mobile-data is written at once so the menu and the shade show the new state
+		conn=$(nmcli -t -f NAME,TYPE connection show 2>/dev/null | awk -F: '$2 == "gsm" { print $1; exit }')
+		# (not "c": state() below sets c to the card slots, 2026-11-10: "nmcli connection down 12")
+		[ -n "$conn" ] || { state "" "No mobile data connection in NetworkManager."; return; }
+		[ $a = dataon ] && op=up || op=down
+		[ $op = up ] && state busy "Mobile data: connecting…" || state busy "Mobile data: disconnecting…"
+		# the result is the real state of the connection, not the exit code of nmcli (2026-11-09 23:54: the data came up on
+		# SIM2 after 14 s, but nmcli reported a failure); the nmcli error is shown when the state did not change
+		err=$(timeout 60 nmcli connection $op "$conn" 2>&1 >/dev/null)
+		want=no; [ $op = up ] && want=yes
+		i=0
+		while [ $i -lt 10 ]; do
+			now=$(nmcli -t -f NAME,ACTIVE connection show 2>/dev/null | awk -F: -v n="$conn" '$1 == n { print $2; exit }')
+			[ "$now" = "$want" ] && break
+			sleep 1; i=$((i + 1))
+		done
+		if [ "$now" = "$want" ]; then
+			[ $op = up ] && v=1 || v=0
+			echo $v > $R/m52xq-mobile-data.new && mv -f $R/m52xq-mobile-data.new $R/m52xq-mobile-data
+			[ $op = up ] && state "" "Mobile data are on." || state "" "Mobile data are off."
+		else
+			state "" "Mobile data: ${err:-nmcli connection $op failed}"
+		fi
+		;;
 	data1 | data2)
 		if [ "$cur" != dsds ] || [ "${a#data}" = "$data" ]; then
 			state "" "Already selected."

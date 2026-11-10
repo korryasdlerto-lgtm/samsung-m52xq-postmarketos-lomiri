@@ -1,0 +1,187 @@
+в6 (003: postmarketOS + Lomiri на mainline-ядре): правки после postmarketos-lomiri-m52xq-mainline-v5.zip (md5 a7b6255ca8080f1251fd8b243fe26ab1).
+Создана 2026-11-09 по команде пользователя. Сюда идут все следующие правки (rootfs-files/ — файлы поверх корня, после проверки на телефоне).
+
+1. 2026-11-09: v5 прошит из TWRP (RC=0, 92 с). Перед перезагрузкой по команде записан dtbo LineageOS (~/Загрузки/dtbo.img, md5 d781002f…, проверено чтением, sda22):
+   в разделе был dtbo-frag от классика (7202d445…), установщик v5 dtbo не пишет, а старый DTB v238 с dtbo-frag уходит в цикл перезагрузок.
+   Прежний раздел: test-images/dtbo_partition_before_lineage.img (md5 7f8a58b7…).
+2. 2026-11-09 (тест на телефоне, НЕ закреплено): экран гас и блокировался при вводе пароля Wi-Fi — Lomiri шлёт setScreenPowerMode('off', 5) (SnapDecision),
+   m52xq-powerkey выполнял его. Перенесён блок из классика (в4 п.11): off с причиной 4/5 только если этот же запрос включил экран.
+   m52xq-powerkey cb99e57a… (было a6d7df35…, копия /root/m52xq-pre-v6/), служба перезапущена. Ждёт проверки пользователем.
+3. 2026-11-09 (тест, НЕ закреплено): последний экран мастера «Добро пожаловать в Lomiri на postmarketOS Lomiri» — перевод «Welcome to %1» уже
+   содержит «Lomiri», а NAME в os-release «postmarketOS Lomiri». Wizard/Pages/80-finished.qml ddeef3f5… (было a39f6cd6…, копия /root/m52xq-pre-v6/):
+   distroName без хвоста « Lomiri». qmllint-qt5 rc=0. Видно только при следующем проходе мастера.
+4. 2026-11-09 ПЕРЕХОД НА ЯДРО КЛАССИКА (по команде «бери классик вариант»), НЕ ПРОВЕРЕН ЗАГРУЗКОЙ:
+   - /lib/modules/7.1.13 из modules-7.1.13.tar.gz (ядро #444, md5 архива c8b75602…) + depmod; 7.1.2 оставлены; набор 7.1.13 ⊇ 7.1.2.
+   - Скрипты из pm v2 (работают с soc и soc@0): m52xq-virtualcam 79a9cb15, m52xq-usb-role-restore e951daed, m52xq-ufs.sh 7256097c,
+     m52xq-soclog.sh 9f7dcc0c, 99-m52xq-usb-runtime-pm.rules da340d53; оригиналы /root/m52xq-pre-v6/.
+   - Записано по ssh (dd, проверено чтением): sda19 boot_v256_k7.1.13_panel-sleep_ipa-from-phone.img 30b8cb84…, sda21 vendor_boot local-v35 8ce2ea61…,
+     sda22 dtbo-frag 7202d445…. Образы в test-images/. Прежние разделы: test-images/{boot,vendor_boot,dtbo}_partition_before_v6_kernel.img
+     (048a8e44…, fe445b7a…, d781002f…).
+   - Известно: камера Lomiri (libgstm52xqcamsrc.so с жёстким /base/soc/cci@…) с новым DTB будет чёрной — пересобрать под musl с выбором soc@0.
+5. 2026-11-09 загрузка на ядре #444 (по «да»): 7.1.13 #444, soc@0, rtc0, 2 модема, звуковая карта, GPU/Lomiri, Wi-Fi, USB ssh — работают.
+   Жёсткий путь 7.1.2 в двух файлах v5 → версии pm v2 ($(uname -r)): m52xq-venus-load 03e5c1f9 (было 870cc083), m52xq-virtualcam.service eb5e6099
+   (было 799a386e; служба падала по кругу «Invalid module format»), оригиналы /root/m52xq-pre-v6/. virtualcam после перезапуска active, /dev/video20-21 есть.
+6. 2026-11-09 (по «делай»): на 7.1.13 Venus грузился автоматически через udev без m52xq_sec_persist (N) — запись видео роняла бы прошивку Venus.
+   /etc/modprobe.d/m52xq-venus.conf 67fdf108 из классика (options venus_core m52xq_sec_persist=1); модули перезагружены без перезагрузки телефона:
+   m52xq_sec_persist=Y, «M52SEC: secure non-pixel domain ready».
+7. 2026-11-09 камера чёрная на новом DTB: m52xqcamsrc искал /base/soc/cci@…. build-m52xqcamsrc/gstm52xqcamsrc.c d676cd99 = в5 + выбор soc@0/soc
+   (как классик в4), собран на ПК в отдельном chroot Alpine edge aarch64 (scratchpad/alpine-aarch64, gstreamer 1.28.7 = телефон), gcc без
+   предупреждений: libgstm52xqcamsrc.so 7400ad87…, на телефоне /usr/lib/gstreamer-1.0/ (старый в /root/m52xq-pre-v6/). gst-inspect ok. Ждёт проверки.
+8. 2026-11-09 камера проверена пользователем («да есть!!»). ЗАКРЕПЛЕНО в rootfs-files (проверено на телефоне загрузкой на #444 и работой):
+   usr/lib/gstreamer-1.0/libgstm52xqcamsrc.so 7400ad87, скрипты pm v2 (virtualcam, usb-role-restore, ufs.sh, soclog.sh, 99-usb-runtime-pm.rules,
+   venus-load, m52xq-virtualcam.service), etc/modprobe.d/m52xq-venus.conf, lib/modules/7.1.13 (23 .ko, ядро #444).
+   firmware/: boot_v256 ipa-from-phone 30b8cb84 (IPA ЭТОГО телефона — для публичного zip нужен boot без IPA + блок IPA в установщике),
+   vendor_boot local-v35 8ce2ea61, dtbo-frag 7202d445. Установщик в6 должен писать dtbo.
+   НЕ закреплено (ждёт проверки): m52xq-powerkey cb99e57a (п.2), Wizard 80-finished.qml (п.3).
+9. 2026-11-09 Megapixels в альбомной сплющен/повёрнут (на телефоне r91 bf41b19c из 003/в3 п.22): временная обёртка /usr/local/bin/m52xq-mpx-log
+   (WAYLAND_DEBUG + вывод в /tmp/mpx.log), ярлык Exec изменён; исходный ярлык /root/m52xq-pre-v6/. ВЕРНУТЬ после диагностики.
+10. 2026-11-09 (тест, НЕ закреплено) часы в альбомной из классика: lomiri-clock-app.qml 217a1bb8, stopwatch/StopwatchPage.qml 29af91a9,
+    clock/ClockPage.qml fc0c9812 (база = та же 4.1.1), ярлык /usr/local/share/applications/lomiri-clock-app.desktop bb6b4883 без
+    X-Lomiri-Supported-Orientations=portrait. qmllint ok. Оригиналы /root/m52xq-pre-v6/.
+    ✅ часы проверены пользователем («часы ок»), закреплено в rootfs-files (3 QML + ярлык).
+11. 2026-11-09 Megapixels r92 (по «собирай»). Причина сплющивания (журнал WAYLAND_DEBUG): Mir шлёт preferred_scale 2.625, а размер
+    xdg_toplevel.configure в пикселях (2400x1017 / 1080x2337); GTK ограничивает обычное окно портретным монитором в логических
+    единицах (411x914) → окно всегда 411x914, Lomiri растягивает его на альбомную область; r91 не видел альбомного окна.
+    r92 = r91 + обработчик GdkToplevel::compute-size (после GtkWindow): окно = монитор в логических единицах минус панель 63 px,
+    в альбомной (акселерометр 90/270) повёрнуто; при смене поворота gdk_surface_request_layout. Сборка в chroot 003/в2/build-maliit-qt6
+    (/build/mpx92, meson buildtype=release, b_lto=false как r91), без новых предупреждений. build-megapixels/megapixels.r92 60e3a1aa
+    + megapixels-r92-on-r91-main.c.patch. На телефоне /usr/bin/megapixels (r91 bf41b19c в /root/m52xq-pre-v6/). Ждёт проверки.
+12. 2026-11-09 r92: окно 914x387 в альбомной верное, но касания в пикселях (qtmir) мимо логических координат GTK (2.625) — кнопки, снимок,
+    фокус касанием не работали. Проба Xwayland (GDK_BACKEND=x11 GDK_SCALE=3 DISPLAY=:0) → Lomiri (Mir) SIGABRT mir::fatal_error_abort,
+    оболочка перезапустилась (телефон НЕ перезагружался, uptime сохранился). ОТКАТ: /usr/bin/megapixels = r91 bf41b19c, ярлык Exec=megapixels
+    (из /root/m52xq-pre-v6/). Xwayland для GTK под этим Lomiri НЕ использовать. r92 остаётся в build-megapixels как черновик.
+13. 2026-11-09 касания (тест 4 углов): Lomiri доставляет касания только в прямоугольник размера окна GTK, отсчитанный в ПИКСЕЛЯХ, и
+    координаты в пикселях → GTK должен работать при масштабе 1. build-megapixels/m52xq-wl-scale1.c → libm52xq-wl-scale1.so 6ff335fc
+    (LD_PRELOAD: скрывает wp_fractional_scale_manager_v1 и zxdg_output_manager_v1, wl_output.scale и preferred_buffer_scale = 1;
+    user data прокси не трогает). С ним: окно 1080x2337 / 2400x1017, касания по всему экрану, превью и альбомная разметка верные.
+    r93 = r92 + M52XQ_UI_SCALE (2.625): значки, картинки, size-request, отступы, spacing, DPI шрифтов, CSS кнопок ×2.625.
+    megapixels.r93 013ab25d + megapixels-r93-on-r91-main.c.patch. На телефоне /usr/bin/megapixels = r93, /usr/local/lib/libm52xq-wl-scale1.so,
+    обёртка /usr/local/bin/m52xq-mpx-log (LD_PRELOAD + M52XQ_UI_SCALE, без WAYLAND_DEBUG), ярлык Exec на неё. Ждёт проверки.
+14. 2026-11-09 Megapixels r93 доведён по проверкам пользователя: левые значки ×2 (72·2.625), два ряда/столбца кнопок (photo/video/status во
+    второй коробке), всплывающее окно ISO/EXP/FOCUS увеличено, ползунок длиннее (альбом 300·f, портрет 230·f), в альбомной окно сбоку от
+    кнопок, в портретной по центру под рядом без стрелки. «ок» пользователя (альбом и портрет). megapixels.r93 7aadc806.
+    Постоянный запуск: /usr/local/bin/m52xq-megapixels-lomiri (LD_PRELOAD shim + M52XQ_UI_SCALE=2.625), ярлык Exec на него; тестовая
+    обёртка m52xq-mpx-log убрана в /root/m52xq-pre-v6/. ЗАКРЕПЛЕНО в rootfs-files: usr/bin/megapixels, usr/local/lib/libm52xq-wl-scale1.so,
+    usr/local/bin/m52xq-megapixels-lomiri, usr/local/share/applications/me.gapixels.Megapixels.desktop.
+15. 2026-11-09 миниатюра снимка в Megapixels не открывала его: нет приложения по умолчанию для image/jpeg (нет mimeinfo.cache).
+    /etc/xdg/mimeapps.list d0769f06 (+ image/jpeg,jpg,png → lomiri-gallery-app, video/mp4 → lomiri-mediaplayer-app), старый в /root/m52xq-pre-v6/.
+    Тест, НЕ закреплено.
+16. 2026-11-09 снимки r93 НЕ сохранялись: LD_PRELOAD наследовали дочерние процессы (postprocess.sh, запуск галереи), прослойка в них не
+    грузилась («Error relocating … wl_proxy_get_class: symbol not found») и они падали → «photo ready …:» без файла, галерея не открывалась.
+    libm52xq-wl-scale1.so 701337c2: constructor unsetenv("LD_PRELOAD") + связь с libwayland-client. Проверено: дочерний sh запускается,
+    LD_PRELOAD пуст. На телефоне и в rootfs-files. Ждёт проверки снимком.
+    + video/x-matroska, video/webm → lomiri-mediaplayer-app (видео Megapixels пишется в MKV). Фото проверено пользователем («фото ок»); /etc/xdg/mimeapps.list ЗАКРЕПЛЁН в rootfs-files.
+17. 2026-11-09 после видео миниатюра пустая (Megapixels делал её только для фото). r93: в on_movie_stop снимок последнего кадра видоискателя
+    (snapshot_thumb из r69), в movie_encoder_finished при status 0 → mp_main_capture_completed(кадр, файл видео): миниатюра + кнопка
+    открывает ролик. megapixels.r93 7d01e0d3, полный патч к r91 теперь megapixels-r93-on-r91.patch (main.c + process_pipeline.c;
+    megapixels-r93-on-r91-main.c.patch — устаревший, только main.c). На телефоне, в rootfs-files пока прежняя сборка — ждёт проверки.
+    ✅ проверено пользователем («есть, супер!!!»): миниатюра видео и открытие ролика. ЗАКРЕПЛЕНО: rootfs-files/usr/bin/megapixels = r93 7d01e0d3, libm52xq-wl-scale1.so 701337c2.
+18. 2026-11-09 калибровка голоса из pm v2 (без модуля 0x10001001, падения ADSP в звонке): m52xq_voice_cal_handset_48k.bin 932b567f (было c71043d5), speaker_48k e3495f75 (было 65f5e108), из .v50-zip-stage; старые в /root/m52xq-pre-v6/. Ждёт проверки звонком.
+19. 2026-11-09 m52xq-tfa-guard + служба из pm v2 (PulseAudio, сокет, sink platform-sound, PCM — как в pm): на телефоне, enable --now, active.
+    ЗАКРЕПЛЕНО в rootfs-files. Установщик в6 должен включить: ln -s ../m52xq-tfa-guard.service etc/systemd/system/multi-user.target.wants/.
+20. По команде пользователя («закрепляй, проверим после прошивки») ЗАКРЕПЛЕНЫ без проверки: usr/local/sbin/m52xq-powerkey cb99e57a (п.2),
+    usr/share/lomiri/Wizard/Pages/80-finished.qml ddeef3f5 (п.3). Калибровка голоса (п.18) — пока не в rootfs-files, ждёт звонка.
+21. 2026-11-09 Wi-Fi: m52xq-wpss-guard из pm v2 ed1c5982 (было 5a641eb1; при падении WPSS зовёт m52xq-wpss-restart), служба перезапущена, active;
+    m52xq-wpss-restart из классика (ждёт конца настройки BT до/после unbind, импульс WL_EN) с проверкой BT через bluetoothctl (hciconfig
+    в pmOS нет) ccb7e84f; m52xq-wl-reset из классика b5e81c79 (python, GPIO v2 chardev); system-sleep/m52xq-nm-keep-wifi.sh из pm v2 427406a1
+    (Wi-Fi не рвётся после сна). НЕ закреплено: ждёт проверки (перезапуск WPSS — по команде; сон с Wi-Fi).
+    ✅ m52xq-wpss-restart d338ad9e (готовность BT по «QCA setup on UART is completed», bluetoothctl не видит ненастроенный контроллер): скрипт 8 с, Wi-Fi через 23 с, BT с адресом, 0 падений. ЗАКРЕПЛЕНЫ wpss-restart, wl-reset, wpss-guard. nm-keep-wifi.sh — ждёт сна.
+22. 2026-11-09 полная сверка pm v2 (1897 файлов) с телефоном: 886 SAME; NONE/DIFF в основном Plasma/KDE/Qt6/переводы (для Lomiri не нужны).
+    Перенесено из pm v2 (новый DTB / сон / NFC), на телефоне:
+    - m52xq-soc (шина датчика заряда i2c-3 на новом DTB) — работает; 90-m52xq-gpu-minfreq.rules (devfreq 3d00000.gpu) — min_freq 0666 после
+      udevadm trigger; m52xq-wow-params (m52xq_hw_filter=3) — параметр 3; m52xq-depmod-firstboot.service (enable, .done создан на этом
+      телефоне; в установщике — ссылка sysinit.target.wants); m52xq-virtualcam.conf (front_landscape_flip=1). ЗАКРЕПЛЕНЫ.
+    - NFC: m52xq-nfc-poll + .service, m52xq-nfc-power, m52xq-nfc, m52xq-nfc-read — на телефоне, НЕ закреплены (проверка включением NFC).
+    Ещё НЕ перенесено (решить): m52xq-notify-heal(+service), m52xq-gps-restore(+user service), system-sleep m52xq-quiet-sleep.sh /
+    m52xq-spacebar-sleep.sh, m52xq-wifi-dark(+.sh, сейчас v5; часть заменена ядром #444), m52xq-notify-screen-wake, m52xq-voip-audio,
+    m52xq-voicecall (pm/классик), libcamera (pm/классик 0012), plasma-dialer/spacebar (свои сборки 003).
+23. 2026-11-09 из pm v2: m52xq-gps-restore + user-служба (ссылка default.target.wants), system-sleep m52xq-quiet-sleep.sh и m52xq-spacebar-sleep.sh,
+    m52xq-voip-audio (pm: звонок Telegram считается активным только при микрофоне, мелодия на громком). НАЙДЕНО: в 003 m52xq-voip-audio не
+    запускался вовсе (XDG autostart Lomiri не выполняет; все app-*@autostart юниты inactive) → своя user-служба etc/systemd/user/
+    m52xq-voip-audio.service (default.target.wants), работает. Не брал: m52xq-notify-heal (лечит plasmashell), новую notify-screen-wake
+    (в паре с Plasma-хелперами). ЗАКРЕПЛЕНО в rootfs-files (+ ссылки user default.target.wants для gps-restore и voip-audio — в установщике).
+24. 2026-11-09 звук в звонке из классика: m52xq-voicecall 5f3b7297 (= pm v2 + переключение громкая/разговорный на месте через
+    q6voice.device_switch=Y ядра #444 + сброс SelectMode 0 в конце звонка; было 7007ed09 — старая pm без повтора усилителя),
+    m52xq-voice-mixers.sh 34dc5016 (действие route). Служба перезапущена без звонка, active. Ждёт проверки звонком (переключения ×3–6).
+25. 2026-11-09 сон: 24 % за 11 ч (~100 мА) при 3 пробуждениях за ночь (02:17→09:08 одним сном). qcom_stats adsp/cxsd/aosd = 0 —
+    НЕ показатель (в pm v2 «как всегда 0» и при 24 мА; опыты: без Morph/звука и без sensorfwd/iio/sensorspd счётчик тот же).
+    WPSS за ночь почти не спал (98 входов, ~10 мин), в pm v2 ночью 11,5 ч — проверить на следующем сне (после ночных перезапусков WPSS
+    02:01/02:02 тестами). Включён подробный журнал: /etc/m52xq-soclog-verbose (ток по soc_raw в /var/log/m52xq-sleep*.log).
+26. 2026-11-09 из классика: zram 3 ГБ (m52xq-zram + служба, CONFIG_ZRAM=y, zstd) — enable --now; m52xq-audio-rescue + служба (enable);
+    tmpfiles m52xq-user-config.conf. ЗАКРЕПЛЕНЫ (ссылки служб: swap.target.wants/m52xq-zram, multi-user.target.wants/m52xq-audio-rescue
+    — в установщике).
+27. 2026-11-09 m52xq-bt-firmware из классика (ожидание разблокировки по /dev/rfkill без конвейера, rebind только если контроллер не поднялся),
+    проверка готовности через «QCA setup on UART is completed» вместо hciconfig: 47dede04, на телефоне, НЕ закреплено (проверка: BT выкл
+    при загрузке → включить). Мастер из классика: 10-welcome.qml (язык сохраняется всегда), 70-passwd-type.qml (цифровой код заранее);
+    30-wifi уже исправлен в 003 своей правкой. qmllint ok. Мастер — проверка после прошивки: ЗАКРЕПЛЕНЫ (как п.20).
+    zram: в 003 уже есть свой zram0 7,6 ГБ (pmOS zram-init, prio 300) — m52xq-zram видит его и ничего не делает (безвредно).
+28. 2026-11-09 m52xq-powerkey bd653769 = cb99e57a (п.2) + из классика: requestWakeup/clearWakeup + сигнал Wakeup + RTC wakealarm (в 003
+    requestWakeup был заглушкой: будильник не будил из сна) и учёт звука по Bluetooth (bluez sink RUNNING не даёт уснуть, pactl через
+    runuser). Подсветка-первая и тёмное пробуждение в 003 уже свои (новее классика), их не трогал. Проверено: requestWakeup → wakealarm
+    выставлен, clearWakeup → 0. ЗАКРЕПЛЕН (заменил cb99e57a в rootfs-files). Проверка будильником из сна — после: в 003 датчик
+    ayatana-indicator-datetime (в классике будильник заработал только с lomiri-indicator-datetime, mkcal) — проверить звонит ли будильник.
+29. 2026-11-09 звонилка 6.8.1 (003) + патчи классика: 0010 без части USSDSheet (кнопки звонка, боковая панель) → build-plasma-dialer/
+    plasma-dialer-0010-m52xq-buttons-sidebar-003.patch, 0012 (сброс громкой/микрофона в конце звонка). Сборка в chroot 003/в2/build-maliit-qt6
+    (/build/plasma-dialer-6.8.1, dual-sim уже наложен; оригиналы .pre-v6). plasma-dialer b92997cc, kde-telephony-daemon eff522ae — на телефоне
+    (старые в /root/m52xq-pre-v6/). kde-telephony-daemon запускает обёртка Lomiri → действует после перезапуска Lomiri.
+30. 2026-11-09 будильник не сохранялся: «alarm manager "eds" not installed, using "memory"» (в pmOS/Alpine нет QtOrganizer-модуля).
+    Собрано в chroot: evolution-data-server-lomiri 59b3ce0 (только библиотека e-source-lomiri, folks убран из CMake, + EDATASERVER
+    include/libs) → libedataserver-source-lomiri.so.0.0.0 ce08272b; qtorganizer5-eds 5a5bdb4 (collection()/collections() подогнаны под
+    qtpim Alpine без const) → libqtorganizer_eds.so c9712376. Исходники в build-qtorganizer5-eds/{eds-lomiri,src}, файлы в out/.
+    На телефоне: /usr/lib/libedataserver-source-lomiri.so.0*, /usr/lib/qt5/plugins/organizer/libqtorganizer_eds.so. Ждёт проверки.
+    ✅ будильник сохраняется (пользователь: «будильник есть»). ЗАКРЕПЛЕНЫ: usr/lib/libedataserver-source-lomiri.so.0 (настоящий файл с именем SONAME, без ссылки), usr/lib/qt5/plugins/organizer/libqtorganizer_eds.so. Звонок из сна — проверка.
+    ✅ будильник разбудил телефон из сна (пользователь: «разбудил»): EDS → ayatana-indicator-datetime → requestWakeup → RTC (powerkey bd653769).
+31. 2026-11-09 контакты из звонилки: хранилище KPeople vCard работает (тест addContact → own/contact (1).vcard «M52xq Test», звонилка его
+    показывает), но звонилка сохраняла N:;;;; без FN (имя терялось: запись в value-type addressee.formattedName молча отбрасывается,
+    правка в4 через копию не помогла). Как в pm v2 0007: ContactController::vcardFor(name, number) в C++, страница сохраняет
+    vcardFor(name.text, phoneField.text). build-plasma-dialer/plasma-dialer-m52xq-vcardfor-003.patch, plasma-dialer.v6b — на телефоне.
+    Ждёт проверки. Тестовый контакт «M52xq Test» (own/contact (1).vcard) и «543-3» без имени (contact (2)) — удалить по команде.
+    ✅ имя сохраняется (пользователь: «да есть»). Причина второй попытки: root.save() перепривязывал addressee и очищал поле имени до vcardFor; в pm v2 save() не вызывался — здесь текст берётся до save(). plasma-dialer.v6c 338d3fac (+0010/0012) ЗАКРЕПЛЁН в rootfs-files/usr/bin/plasma-dialer. kde-telephony-daemon eff522ae — ждёт проверки после перезапуска Lomiri.
+32. 2026-11-09 имя контакта не показывалось в журнале вызовов: номеронабиратель сохраняет номер с форматированием («444-4»), журнал и поиск
+    контакта — без («4444»). vcardFor пишет только цифры и + * #: plasma-dialer.v6d d4dccfdf (патч plasma-dialer-m52xq-vcardfor-003.patch
+    обновлён) — на телефоне и в rootfs-files. Тот же код в pm v2 (vcardFor number.trimmed()) — перенести и туда.
+    По «да»: у «Aksk» номер 444-4 → 4444 (contact (4).vcard), удалены contact (1) «M52xq Test», (2) и (3) «543-3» без имени
+    (копии всех четырёх до правки — /tmp/vcard-backup на телефоне, до перезагрузки).
+    ✅ телефония проверена пользователем («телефония ок»): kde-telephony-daemon eff522ae (0012) ЗАКРЕПЛЁН в rootfs-files/usr/lib/libexec/.
+33. 2026-11-09 входящий во сне: звонок звучал, экран не загорался до конца вызова. powerkey отклонял setScreenPowerMode('on', 5) из-за тёмного
+    пробуждения по модему, m52xq-wifi-dark закрывал тёмное окно позже, но экран больше никто не просил (ядро #444: dark_resume=0 при яркости 0
+    панель не будит). m52xq-powerkey: 'on' с причиной 5 (snap decision = звонок) во время dark resume → dark_resume=0 + screen_on
+    (notif_on False: «off» закрытого snap decision не гасит разговор); SMS (причина 4) по-прежнему тёмные. Было bd653769, на телефоне и
+    в rootfs-files. Ждёт проверки звонком во сне.
+    ✅ проверено (пользователь: «да разбудил экран»): входящий во сне включает экран сразу.
+34. 2026-11-09 ModemManager 0104 (use-after-free в mm-netlink transaction_complete — падения при подключении данных, классик в6 п.7).
+    pmaports/temp/modemmanager (pm v2 r8) + 0104 → r9 (pmbootstrap build --arch aarch64, патч применён по log.txt). apk НЕ ставить:
+    в 003 пакет edge git20261005-r0, apk add откатывал бы его и удалял gcr/gcr-base/modemmanager-lang. 003 запускает наш бинарник
+    /usr/bin/ModemManager (drop-in zz-m52xq-modemmanager-r8.conf) → заменён только он: e8c9d836 (было adb14cd9 = r8, копия в
+    /root/m52xq-pre-v6/). build-modemmanager/: APKBUILD, 0104, apk r9, x/. В rootfs-files/usr/bin/ModemManager.
+    Проверка 0104 (по «прогони», по USB): 5 циклов nmcli con up/down «Мобильный интернет» — rc 0 каждый раз, ModemManager не падал
+    (pid тот же). Ping не шёл: данные на SIM2, у которой нулевой баланс (пользователь) — не ошибка порта. ✅ ModemManager r9 закреплён.
+    ⚠ ОШИБКА ТЕСТА: `nmcli radio wifi off` уронил WPSS в цикл mhi_issue_request (16:07:43); guard: перезапуск 16:12:55 снова цикл
+    (как в классике: после цикла падений помогает только перезагрузка). Wi-Fi в тестах НЕ выключать через nmcli radio.
+35. 2026-11-09 после перезагрузки Wi-Fi остался выключенным (NM WIFI disabled, rfkill soft blocked — состояние от моего теста сохранилось).
+    nmcli radio wifi on при здоровом WPSS: подключился, 0 падений. Выключение Wi-Fi в Lomiri = urfkill + NM WirelessEnabled (классик в4
+    п.10); выгрузка ath11k как в pm (m52xq-wifi-hw) убирает wlan0 и переключатель из шторки — для Lomiri не годится. Сон при выкл.
+    радио — правка ядра ath11k (m52xq_off_ps=Y, #444). Проверить: выкл/вкл плиткой не роняет ли WPSS.
+36. 2026-11-09 переключатель Wi-Fi в шторке показывал наоборот (индикатор сети запомнил «выкл» после моего nmcli radio wifi on в обход
+    оболочки). Перезапуск lomiri-indicator-network-service: оболочка его не подхватила (пустое меню «Сеть») → по «да» systemctl restart
+    tinydm — индикатор верный. Проверка плиткой Lomiri: выкл 16:45:24 (wireless-enabled:off, rfkill soft) — WPSS running, 0 падений;
+    вкл — см. ниже. Вывод: цикл падений WPSS днём вызвал только мой nmcli radio wifi off при включённом WoW, плитка безопасна.
+    вкл 16:46:00 (wireless-enabled:on) → подключился к сети через ~10 с, WPSS running, 0 падений. ✅ выкл/вкл плиткой работает.
+37. 2026-11-09 KPeople 6.31.0 (003) + патч классика 0001-m52xq-serialize-persondb-access (QRecursiveMutex на базу PersonManager:
+    падение звонилки SIGSEGV sqlite3DbMallocRawNN при открытии во время звонка — имя + аватар в двух потоках). Патч лёг на 6.31 без правок.
+    Сборка в chroot 003/в2/build-maliit-qt6 (/build/kpeople-6.31.0, cmake Ninja, BUILD_TESTING=OFF). build-kpeople/: исходник, патч,
+    libKF6People.so.6.31.0.m52xq. На телефоне /usr/lib/libKF6People.so.6.31.0 (было f481e5e1 → /root/m52xq-pre-v6/). Ждёт проверки.
+    ЗАКРЕПЛЁН по команде («закрепи … в нём проверим»): rootfs-files/usr/lib/libKF6People.so.6.31.0 7ba94066.
+38. 2026-11-09 АРХИВ v1-v6 СОБРАН (по «да ок, собирай»; НЕ ПРОШИТ): postmarketos-lomiri-m52xq-mainline-v1-v6.zip, 1 412 757 158 Б,
+    md5 4d36454ff49fe7a4cbba710deb6235b0, unzip -t ok. Шапка «postmarketOS mainline lomiri v1 — m52xq».
+    - Образ samsung-m52xq-lomiri-v1-v6.img (/home/sasha/003-v6-build) md5 a3f3f77a…: снимок телефона по USB (GNU tar 1.35 из apk Alpine
+      в /tmp/gtar, xattrs; systemd-inhibit), база разметки v3 (pmOS_boot, чистая /home, AccountsService); без закрытых прошивок
+      (adsp/modem/a660_zap/ipa/qca/vpu, конфиги и реестр датчиков), Wi-Fi сетей кроме m52xq-mobile-internet, bt_addr, выбора SIM,
+      ключей ssh (sshdgenkeys при первой загрузке), machine-id, pstore, флага soclog-verbose, m52xq-mpx-debug. Пароль 1111 (SHA-512).
+      Поиск 30 образцов: 0 после удаления var/lib/systemd/pstore/console-ramoops-0. e2fsck чистый. m52xq-zram отключён (свой zram
+      pmOS 7,4 ГБ). Скрипт в6/build-v6-image.sh.
+    - Установщик: pm v2 update-binary (dtbo-frag, IPA с apnhlos в boot, прошивки модема/ADSP/GPU/Venus/BT/датчиков с телефона,
+      адрес BT из EFS), шапка lomiri v1, boot_v256_k7.1.13_panel-sleep.img 64c1ce0d (без IPA, из классик/в8/firmware),
+      vendor_boot local-v35 8ce2ea61, dtbo-frag 7202d445. Все службы, которые он включает, в 003 и так включены.
+    - Чанки data/rootfs-chunks part-0/1 по 2 479 603 712 Б (cat = a3f3f77a…). mainline-extras = только метка etc/m52xq/lomiri-release
+      (нужна установщику для блоков прошивок). rootfs-files в zip нет (всё в снимке).

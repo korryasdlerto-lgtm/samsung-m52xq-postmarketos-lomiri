@@ -2,6 +2,8 @@
 
 Версия документа: 2026-11-02. Последний архив: **lomiri v5** (2026-10-30).
 
+> Релиз **unofficial v1** (2026-11-10): что изменилось после v5 — [CHANGES-v1-RU.md](CHANGES-v1-RU.md). Установка v1 — как в разделе 4, архив `postmarketos-lomiri-m52xq-mainline-v1-UNOFFICIAL.zip`.
+
 ## 1. Что это
 
 - Устройство: Samsung Galaxy M52 5G, SM-M526B / SM-M526BR, Snapdragon 778G (SM7325, платформа «yupik»), кодовое имя `m52xq`.

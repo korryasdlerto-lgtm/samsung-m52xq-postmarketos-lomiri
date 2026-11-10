@@ -120,6 +120,15 @@ class Indicator:
 		self.section = Gio.Menu()
 		menu = Gio.Menu()
 		menu.append_section(None, self.section)
+		# 003 в7 (2026-11-10): the mobile data switch has a section of its own, created once. It used to be rebuilt with the SIM lines
+		# on every change of the signal strength, and Lomiri drew the new switch "off" until it read the state: it flickered every
+		# 8-12 s. Its state changes only through the action now.
+		self.data_section = Gio.Menu()
+		item = Gio.MenuItem.new(T['data'], 'indicator.mobile-data')
+		item.set_attribute_value('x-ayatana-type', GLib.Variant('s', 'org.ayatana.indicator.switch'))
+		self.data_section.append_item(item)
+		menu.append_section(None, self.data_section)
+		self.last_lines = None
 		item = Gio.MenuItem.new(None, 'indicator.root-phone')
 		item.set_attribute_value('x-ayatana-type', GLib.Variant('s', 'org.ayatana.indicator.root'))
 		item.set_submenu(menu)
@@ -161,24 +170,42 @@ class Indicator:
 		else:
 			lines = sims or [(0, T['none'], 'no-simcard', None)]
 		conn, active = gsm_connection()
+		self.write_data_state(conn is not None and active)
 		state = (tuple(sims), tuple(lines), conn, active)
 		if state == self.last:
 			return True
 		self.last = state
 		self.root_action.set_state(self.root_state(sims))
-		self.data_action.set_state(GLib.Variant('b', active))
-		self.data_action.set_enabled(conn is not None)
-		self.section.remove_all()
-		for slot, line, sig, ticon in lines:
-			text = ('SIM %d: %s' % (slot, line)) if slot else line
-			item = Gio.MenuItem.new(text, None)
-			item.set_action_and_target_value('indicator.sim', GLib.Variant('i', slot))
-			item.set_attribute_value('icon', icon('simcard-%d' % slot if 1 <= slot <= 2 else 'no-simcard'))
-			self.section.append_item(item)
-		item = Gio.MenuItem.new(T['data'], 'indicator.mobile-data')
-		item.set_attribute_value('x-ayatana-type', GLib.Variant('s', 'org.ayatana.indicator.switch'))
-		self.section.append_item(item)
+		if self.data_action.get_state().unpack() != active:
+			self.data_action.set_state(GLib.Variant('b', active))
+		if self.data_action.get_enabled() != (conn is not None):
+			self.data_action.set_enabled(conn is not None)
+		if tuple(lines) != self.last_lines:
+			self.last_lines = tuple(lines)
+			self.section.remove_all()
+			for slot, line, sig, ticon in lines:
+				text = ('SIM %d: %s' % (slot, line)) if slot else line
+				item = Gio.MenuItem.new(text, None)
+				item.set_action_and_target_value('indicator.sim', GLib.Variant('i', slot))
+				item.set_attribute_value('icon', icon('simcard-%d' % slot if 1 <= slot <= 2 else 'no-simcard'))
+				self.section.append_item(item)
 		return True
+
+	# 003 в7 (2026-11-09): the SIM menu (sim-mode-menu.qml) greys out "Data: SIM1/SIM2" while the mobile data are off:
+	# changing the data SIM re-probes the modem port and broke a connection that was just being set up (22:48:21 up on
+	# qrtr0, 22:48:30 data SIM2 -> reprobe -> the switch went off). "1"/"0" in XDG_RUNTIME_DIR/m52xq-mobile-data.
+	def write_data_state(self, on):
+		v = '1' if on else '0'
+		if getattr(self, 'data_written', None) == v:
+			return
+		path = os.path.join(os.environ.get('XDG_RUNTIME_DIR', '/run/user/%d' % os.getuid()), 'm52xq-mobile-data')
+		try:
+			with open(path + '.new', 'w') as f:
+				f.write(v + '\n')
+			os.replace(path + '.new', path)
+			self.data_written = v
+		except OSError as e:
+			log('cannot write %s: %s' % (path, e))
 
 	def toggle_data(self, action, param):
 		conn, active = gsm_connection()

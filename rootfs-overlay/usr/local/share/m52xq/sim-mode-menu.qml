@@ -23,6 +23,9 @@ Window {
 	property bool busy: true
 	property string message: ""
 	property string cards: "12"
+	// 003 в7: the mobile data switch of the SIM indicator (XDG_RUNTIME_DIR/m52xq-mobile-data, written by
+	// m52xq-indicator-sim): while the data are off the data SIM buttons are greyed out and do nothing
+	property bool dataOn: true
 	readonly property bool oneSim: cards.length === 1
 	// with one SIM inserted the phone runs on that SIM only: the (grey) buttons show it, whatever mode is saved for
 	// the time both SIMs are inserted: "Only SIMx" and "Data: SIMx" of the slot with the card
@@ -32,8 +35,8 @@ Window {
 	// landscape: two columns (left: title, state, message, Close; right: the three rows of buttons, ~20 units high)
 	readonly property bool landscape: width > height
 	// size unit: portrait 1/20 of the width, the whole window (~31 units high) must also fit the height;
-	// landscape: both columns (~46 units wide) and the button column (~21 units high) must fit
-	readonly property real u: landscape ? Math.min(width / 47, height / 22) : Math.min(width / 20, height / 31)
+	// landscape: both columns (~46 units wide) and the button column (~25 units high, with the mobile data row) must fit
+	readonly property real u: landscape ? Math.min(width / 47, height / 26) : Math.min(width / 20, height / 36)
 
 	function choose(a) {
 		busy = true
@@ -57,6 +60,11 @@ Window {
 		busy = l[3] === "busy"
 		message = l[4] || ""
 		cards = l[5] || "12"
+		var d = new XMLHttpRequest()
+		d.open("GET", "file:///run/user/10000/m52xq-mobile-data", false)
+		d.send()
+		if (d.responseText.length > 0)
+			dataOn = d.responseText.trim() === "1"
 	}
 
 	Timer {
@@ -167,7 +175,15 @@ Window {
 			Layout.preferredWidth: win.landscape ? win.u * 30 : -1
 			spacing: win.u * 0.6
 
-			Caption { text: win.oneSim ? "Mode (one SIM inserted)" : "Mode"; Layout.topMargin: win.landscape ? 0 : win.u * 0.8 }
+			// 003 в7 (2026-11-10): SIM cards power on top (asked), then the SIM mode, the data SIM and the mobile data switch
+			Caption { text: "SIM cards power"; Layout.topMargin: win.landscape ? 0 : win.u * 0.8 }
+			Big {
+				text: win.flight ? "Turn SIM cards ON" : "Turn SIM cards OFF (flight mode)"
+				current: win.flight
+				onClicked: win.choose("flight")
+			}
+
+			Caption { text: win.oneSim ? "Mode (one SIM inserted)" : "Mode" }
 			RowLayout {
 				spacing: win.u * 0.5
 				Big { text: "Both\nSIMs"; current: win.effMode === "dsds"; enabled: !win.busy && !win.oneSim; onClicked: win.choose("dsds") }
@@ -175,27 +191,30 @@ Window {
 				Big { text: "Only\nSIM2"; current: win.effMode === "sim2"; enabled: !win.busy && !win.oneSim; onClicked: win.choose("sim2") }
 			}
 
-			Caption { text: win.mode === "dsds" && !win.oneSim ? "Mobile data" : "Mobile data (choose with both SIMs)" }
+			Caption { text: !win.dataOn ? "SIM of the mobile data (data are off)" : win.mode === "dsds" && !win.oneSim ? "SIM of the mobile data" : "SIM of the mobile data (choose with both SIMs)" }
 			RowLayout {
 				spacing: win.u * 0.5
 				Big {
-					text: "Data: SIM1"; enabled: !win.busy && !win.oneSim && win.mode === "dsds"
+					text: "Data: SIM1"; enabled: !win.busy && !win.oneSim && win.mode === "dsds" && win.dataOn
 					current: win.effData === "1"
 					onClicked: win.choose("data1")
 				}
 				Big {
-					text: "Data: SIM2"; enabled: !win.busy && !win.oneSim && win.mode === "dsds"
+					text: "Data: SIM2"; enabled: !win.busy && !win.oneSim && win.mode === "dsds" && win.dataOn
 					current: win.effData === "2"
 					onClicked: win.choose("data2")
 				}
 			}
 
-			Caption { text: "SIM cards power" }
+			// 003 в7: the same mobile data switch as in the shade (SIM indicator); both show XDG_RUNTIME_DIR/m52xq-mobile-data
+			Caption { text: "Mobile data" }
 			Big {
-				text: win.flight ? "Turn SIM cards ON" : "Turn SIM cards OFF (flight mode)"
-				current: win.flight
-				onClicked: win.choose("flight")
+				text: win.dataOn ? "Turn mobile data OFF" : "Turn mobile data ON"
+				current: win.dataOn
+				enabled: !win.busy && !win.flight
+				onClicked: win.choose(win.dataOn ? "dataoff" : "dataon")
 			}
+
 
 			Big {
 				visible: !win.landscape

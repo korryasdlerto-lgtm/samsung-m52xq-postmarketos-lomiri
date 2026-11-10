@@ -1,0 +1,46 @@
+--- mpx91/src/main.c	2026-10-25 19:49:25.950759997 +0200
++++ mpx92/src/main.c	2026-11-09 03:18:28.135312249 +0200
+@@ -1534,9 +1534,34 @@
+         }
+ }
+ 
++/* m52xq r92 (Lomiri): Mir announces scale 2.625 but sends the xdg_toplevel configure size in pixels, and GTK limits a
++ * floating window to the (always portrait) monitor in logical units: the window stayed 411x914 in landscape and Lomiri
++ * stretched it into the 2400x1017 area (squeezed UI, sideways preview). Size the window to the Lomiri app area ourselves:
++ * the monitor in logical units minus the status panel (63 px), turned to landscape when the accelerometer says so. */
++#define M52XQ_PANEL_PX 63.0
++static void
++m52xq_compute_size(GdkToplevel *toplevel, GdkToplevelSize *size, gpointer data)
++{
++        int bw = 0, bh = 0;
++        gdk_toplevel_size_get_bounds(size, &bw, &bh);
++        if (bw <= 0 || bh <= 0)
++                return;
++        double scale = gdk_surface_get_scale(GDK_SURFACE(toplevel));
++        int panel = (int)(M52XQ_PANEL_PX / (scale > 0 ? scale : 1.0) + 0.5);
++        int pw = MIN(bw, bh), ph = MAX(bw, bh);	/* the monitor as portrait */
++        bool land = state.device_accel_rotation_good &&
++                    (state.device_accel_rotation == 90 || state.device_accel_rotation == 270);
++        int w = land ? ph : pw;
++        int h = (land ? pw : ph) - panel;
++        gdk_toplevel_size_set_size(size, w, h);
++        printf("m52xq: window %dx%d (bounds %dx%d, scale %.3f, %s)\n", w, h, bw, bh, scale, land ? "landscape" : "portrait");
++}
++
+ static void
+ on_realize(GtkWidget *window, gpointer *data)
+ {
++        g_signal_connect_after(gtk_native_get_surface(gtk_widget_get_native(window)), "compute-size",
++                               G_CALLBACK(m52xq_compute_size), NULL);
+         if (state.configuration->count == 0) {
+                 return;
+         }
+@@ -1815,6 +1840,8 @@
+                  state.device_accel_rotation_good = good;
+                  update_io_pipeline();
+                  apply_rotation();
++                 if (window && gtk_widget_get_native(window))	/* m52xq r92: new window size for the new orientation */
++                         gdk_surface_request_layout(gtk_native_get_surface(gtk_widget_get_native(window)));
+          }
+ }
+ 

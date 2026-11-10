@@ -1,0 +1,223 @@
+--- mpx91/src/main.c	2026-10-25 19:49:25.950759997 +0200
++++ mpx93/src/main.c	2026-11-09 03:46:45.370058887 +0200
+@@ -79,6 +79,8 @@
+ GtkWidget *process_spinner;
+ GtkWidget *scanned_codes;
+ GtkWidget *preview_top_box;
++static double m52xq_ui_scale;	/* m52xq r93 */
++static void m52xq_scale_widget(GtkWidget *w);
+ GtkWidget *preview_bottom_box;
+ 
+ GtkWidget *message_box;
+@@ -1207,7 +1209,12 @@
+                 "/org/postmarketos/Megapixels/controls-popover.ui");
+         GtkPopover *popover =
+                 GTK_POPOVER(gtk_builder_get_object(builder, "controls"));
++        if (m52xq_ui_scale > 1.01)	/* m52xq r93: the popover is built on every open, enlarge it too */
++                m52xq_scale_widget(GTK_WIDGET(popover));
+         GtkScale *scale = GTK_SCALE(gtk_builder_get_object(builder, "scale"));
++        bool m52xq_land = state.device_rotation == 90 || state.device_rotation == 270;
++        if (m52xq_ui_scale > 1.01)	/* m52xq r93: a longer slider (user, 2026-11-09); portrait: the popover must fit 1080 px */
++                gtk_widget_set_size_request(GTK_WIDGET(scale), (int)((m52xq_land ? 300 : 230) * m52xq_ui_scale + 0.5), -1);
+         GtkLabel *title = GTK_LABEL(gtk_builder_get_object(builder, "title"));
+         GtkLabel *value_label =
+                 GTK_LABEL(gtk_builder_get_object(builder, "value-label"));
+@@ -1237,7 +1244,17 @@
+                          set_auto_fn);
+         g_signal_connect(auto_button, "toggled", G_CALLBACK(update_scale), scale);
+ 
++        /* m52xq r93: in portrait the popover centred under the left-most button went off the screen (Mir does not slide
++         * popups back): hang it on the whole control area, centred on the screen, without the arrow */
++        if (m52xq_ui_scale > 1.01 && !m52xq_land && preview_top_box) {
++                parent = preview_top_box;
++                gtk_popover_set_has_arrow(popover, FALSE);
++        }
+         gtk_widget_set_parent(GTK_WIDGET(popover), parent);
++        /* m52xq r93: in landscape the buttons are at the screen edge and Mir does not slide a popup back on screen: open it
++         * beside the button, over the preview */
++        if (m52xq_land)
++                gtk_popover_set_position(popover, gtk_widget_get_halign(preview_top_box) == GTK_ALIGN_END ? GTK_POS_LEFT : GTK_POS_RIGHT);
+         gtk_popover_popup(popover);
+         // g_object_unref(popover);
+ }
+@@ -1534,9 +1551,34 @@
+         }
+ }
+ 
++/* m52xq r92 (Lomiri): Mir announces scale 2.625 but sends the xdg_toplevel configure size in pixels, and GTK limits a
++ * floating window to the (always portrait) monitor in logical units: the window stayed 411x914 in landscape and Lomiri
++ * stretched it into the 2400x1017 area (squeezed UI, sideways preview). Size the window to the Lomiri app area ourselves:
++ * the monitor in logical units minus the status panel (63 px), turned to landscape when the accelerometer says so. */
++#define M52XQ_PANEL_PX 63.0
++static void
++m52xq_compute_size(GdkToplevel *toplevel, GdkToplevelSize *size, gpointer data)
++{
++        int bw = 0, bh = 0;
++        gdk_toplevel_size_get_bounds(size, &bw, &bh);
++        if (bw <= 0 || bh <= 0)
++                return;
++        double scale = gdk_surface_get_scale(GDK_SURFACE(toplevel));
++        int panel = (int)(M52XQ_PANEL_PX / (scale > 0 ? scale : 1.0) + 0.5);
++        int pw = MIN(bw, bh), ph = MAX(bw, bh);	/* the monitor as portrait */
++        bool land = state.device_accel_rotation_good &&
++                    (state.device_accel_rotation == 90 || state.device_accel_rotation == 270);
++        int w = land ? ph : pw;
++        int h = (land ? pw : ph) - panel;
++        gdk_toplevel_size_set_size(size, w, h);
++        printf("m52xq: window %dx%d (bounds %dx%d, scale %.3f, %s)\n", w, h, bw, bh, scale, land ? "landscape" : "portrait");
++}
++
+ static void
+ on_realize(GtkWidget *window, gpointer *data)
+ {
++        g_signal_connect_after(gtk_native_get_surface(gtk_widget_get_native(window)), "compute-size",
++                               G_CALLBACK(m52xq_compute_size), NULL);
+         if (state.configuration->count == 0) {
+                 return;
+         }
+@@ -1815,9 +1857,69 @@
+                  state.device_accel_rotation_good = good;
+                  update_io_pipeline();
+                  apply_rotation();
++                 if (window && gtk_widget_get_native(window))	/* m52xq r92: new window size for the new orientation */
++                         gdk_surface_request_layout(gtk_native_get_surface(gtk_widget_get_native(window)));
+          }
+ }
+ 
++/* m52xq r93 (Lomiri): with the libm52xq-wl-scale1.so shim the window runs at scale 1 (logical unit = pixel, the only
++ * way Mir delivers touches and sizes consistently). M52XQ_UI_SCALE (the wrapper sets 2.625 = the Lomiri grid unit / 8)
++ * then enlarges the UI itself: icon and picture sizes, size requests, margins, spacing, font DPI and the CSS sizes. */
++static double m52xq_ui_scale = 1.0;	/* declared above */
++static int m52xq_px(int v) { return v > 0 ? (int)(v * m52xq_ui_scale + 0.5) : v; }
++
++static void
++m52xq_scale_widget(GtkWidget *w)
++{
++        int a, b;
++        gtk_widget_get_size_request(w, &a, &b);
++        if (a > 0 || b > 0)
++                gtk_widget_set_size_request(w, m52xq_px(a), m52xq_px(b));
++        gtk_widget_set_margin_start(w, m52xq_px(gtk_widget_get_margin_start(w)));
++        gtk_widget_set_margin_end(w, m52xq_px(gtk_widget_get_margin_end(w)));
++        gtk_widget_set_margin_top(w, m52xq_px(gtk_widget_get_margin_top(w)));
++        gtk_widget_set_margin_bottom(w, m52xq_px(gtk_widget_get_margin_bottom(w)));
++        if (GTK_IS_IMAGE(w) && gtk_image_get_pixel_size(GTK_IMAGE(w)) > 0)
++                gtk_image_set_pixel_size(GTK_IMAGE(w), m52xq_px(gtk_image_get_pixel_size(GTK_IMAGE(w))));
++        if (GTK_IS_BOX(w))
++                gtk_box_set_spacing(GTK_BOX(w), m52xq_px(gtk_box_get_spacing(GTK_BOX(w))));
++        if (GTK_IS_GRID(w)) {
++                gtk_grid_set_row_spacing(GTK_GRID(w), m52xq_px(gtk_grid_get_row_spacing(GTK_GRID(w))));
++                gtk_grid_set_column_spacing(GTK_GRID(w), m52xq_px(gtk_grid_get_column_spacing(GTK_GRID(w))));
++        }
++        for (GtkWidget *c = gtk_widget_get_first_child(w); c; c = gtk_widget_get_next_sibling(c))
++                m52xq_scale_widget(c);
++}
++
++static void
++m52xq_scale_setup(GdkDisplay *display)
++{
++        const char *e = g_getenv("M52XQ_UI_SCALE");
++        double f = e ? g_ascii_strtod(e, NULL) : 0;
++        if (f < 1.01 || f > 8)
++                return;
++        m52xq_ui_scale = f;
++        g_object_set(gtk_settings_get_default(), "gtk-xft-dpi", (int)(96 * 1024 * f), NULL);
++        gchar *css = g_strdup_printf(
++                "image { -gtk-icon-size: %dpx; }\n"
++                ".control, .control image { -gtk-icon-size: %dpx; }\n"	/* the image rule above must not shrink them */
++                "button { padding: %dpx %dpx; min-height: %dpx; min-width: %dpx; border-radius: %dpx; }\n"
++                ".rec-indicator { font-size: %dpx; padding: %dpx %dpx; border-radius: %dpx; }\n"
++                /* the ISO / exposure / focus popover: bigger text, slider and padding */
++                "popover label, popover button { font-size: 1.5em; }\n"
++                "popover contents { padding: %dpx; }\n"
++                "scale trough { min-height: %dpx; }\n"
++                "scale slider { min-width: %dpx; min-height: %dpx; margin: -%dpx; }\n",
++                m52xq_px(16), m52xq_px(72), m52xq_px(4), m52xq_px(8), m52xq_px(24), m52xq_px(24), m52xq_px(6),
++                m52xq_px(22), m52xq_px(6), m52xq_px(18), m52xq_px(18),
++                m52xq_px(10), m52xq_px(6), m52xq_px(24), m52xq_px(24), m52xq_px(9));
++        GtkCssProvider *p = gtk_css_provider_new();
++        gtk_css_provider_load_from_string(p, css);
++        gtk_style_context_add_provider_for_display(display, GTK_STYLE_PROVIDER(p), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION + 1);
++        g_free(css);
++        printf("m52xq: UI scale %.3f\n", f);
++}
++
+ static void
+ activate(GtkApplication *app, gpointer data)
+ {
+@@ -1837,10 +1939,45 @@
+                 GTK_STYLE_PROVIDER(provider),
+                 GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+ 
++        m52xq_scale_setup(display);
++
+         GtkBuilder *builder = gtk_builder_new_from_resource(
+                 "/org/postmarketos/Megapixels/camera.ui");
+ 
+         window = GTK_WIDGET(gtk_builder_get_object(builder, "window"));
++        if (m52xq_ui_scale > 1.01) {
++                m52xq_scale_widget(window);
++                /* the enlarged control buttons (ISO … status) do not fit in one row / column: put the last three in a
++                 * second box next to the first, with the same orientation (top-box stacks the two boxes: two rows in
++                 * portrait, two columns in landscape) */
++                GtkWidget *iso = GTK_WIDGET(gtk_builder_get_object(builder, "iso-controls-button"));
++                GtkWidget *bottom = GTK_WIDGET(gtk_builder_get_object(builder, "bottom-box"));
++                GtkWidget *a = iso ? gtk_widget_get_parent(iso) : NULL;
++                GtkWidget *top = a ? gtk_widget_get_parent(a) : NULL;
++                if (a && top && bottom && GTK_IS_BOX(a) && GTK_IS_BOX(top)) {
++                        GtkWidget *b = gtk_box_new(gtk_orientable_get_orientation(GTK_ORIENTABLE(a)),
++                                                   gtk_box_get_spacing(GTK_BOX(a)));
++                        g_object_bind_property(bottom, "orientation", b, "orientation", G_BINDING_SYNC_CREATE);
++                        gtk_widget_set_valign(b, gtk_widget_get_valign(a));
++                        gtk_widget_set_halign(b, gtk_widget_get_halign(a));
++                        gtk_widget_set_margin_start(b, gtk_widget_get_margin_start(a));
++                        gtk_widget_set_margin_end(b, gtk_widget_get_margin_end(a));
++                        gtk_widget_set_margin_top(b, gtk_widget_get_margin_top(a));
++                        gtk_widget_set_margin_bottom(b, gtk_widget_get_margin_bottom(a));
++                        gtk_widget_set_can_focus(b, FALSE);
++                        gtk_box_insert_child_after(GTK_BOX(top), b, a);
++                        const char *ids[] = { "photo-res-button", "video-res-button", "status-button" };
++                        for (int i = 0; i < 3; i++) {
++                                GtkWidget *w = GTK_WIDGET(gtk_builder_get_object(builder, ids[i]));
++                                if (!w || gtk_widget_get_parent(w) != a)
++                                        continue;
++                                g_object_ref(w);
++                                gtk_box_remove(GTK_BOX(a), w);
++                                gtk_box_append(GTK_BOX(b), w);
++                                g_object_unref(w);
++                        }
++                }
++        }
+         iso_button =
+                 GTK_WIDGET(gtk_builder_get_object(builder, "iso-controls-button"));
+         shutter_button = GTK_WIDGET(
+--- mpx91/src/process_pipeline.c	2026-10-22 02:44:04.890818793 +0300
++++ mpx93/src/process_pipeline.c	2026-11-09 03:54:41.324050760 +0200
+@@ -1489,9 +1489,18 @@
+ {
+ 	GSubprocess *proc = G_SUBPROCESS(source);
+ 	g_subprocess_wait_finish(proc, res, NULL);
+-	printf("movie encoder finished, status %d\n", g_subprocess_get_exit_status(proc));
++	int status = g_subprocess_get_exit_status(proc);
++	printf("movie encoder finished, status %d\n", status);
+ 	g_object_unref(proc);
+ 	notify_movie_record_ready();
++	/* m52xq r93: the thumbnail button showed nothing after a video: show the last viewfinder frame (taken when the
++	 * recording stopped) and let the button open the new video */
++	GdkTexture *thumb = pending_thumb;
++	pending_thumb = NULL;
++	if (status == 0 && thumb)
++		mp_main_capture_completed(thumb, movie_fname);
++	else if (thumb)
++		g_object_unref(thumb);
+ }
+ 
+ static gpointer
+@@ -2044,6 +2053,7 @@
+ 	movie_recording = 0;
+ 	printf("movie recording off\n");
+ 	if (movie_new_path) {
++		mp_process_pipeline_snapshot_thumb();	/* m52xq r93: thumbnail of the video, see movie_encoder_finished() */
+ 		movie_new_path = false;
+ 		movie_encoder_stop();
+ 	} else {

@@ -1267,13 +1267,17 @@ Item {
         ZoomControl {
             id: zoomControl
 
+            // m52xq в8: the width came from the video / swap buttons, which in landscape stand in one column on the right
+            // (controls.m52xqSide): the slider shrank to its "+" icon. In landscape it lies along the bottom of the
+            // viewfinder, left of the button column.
             anchors {
-                bottom: shootButton.top
-                bottomMargin: units.gu(2)
+                bottom: controls.m52xqSide ? parent.bottom : shootButton.top
+                bottomMargin: controls.m52xqSide ? units.gu(3) : units.gu(2)
                 left: parent.left
                 right: parent.right
-                leftMargin: recordModeButton.x
-                rightMargin: parent.width - (swapButton.x + swapButton.width)
+                leftMargin: controls.m52xqSide ? units.gu(4) : recordModeButton.x
+                rightMargin: controls.m52xqSide ? parent.width - shootButton.x + units.gu(4)
+                                                : parent.width - (swapButton.x + swapButton.width)
             }
             maximumValue: camera.maximumZoom
 

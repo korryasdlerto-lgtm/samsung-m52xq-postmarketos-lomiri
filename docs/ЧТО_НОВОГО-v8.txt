@@ -1,0 +1,33 @@
+в8 (003: postmarketOS + Lomiri): правки после postmarketos-lomiri-m52xq-mainline-v1-v7.zip (md5 eb2e763c6a62e33ff3f0f5c2332b9813, прошит 2026-11-10).
+Папка создана 2026-11-10 по команде.
+
+1. mainline-extras/rootfs-files/etc/m52xq/lomiri-release: текст «postmarketos-lomiri v1» (в v1-v7 остался «postmarketos-lomiri v1 (v1-v6)» из в6).
+   Файл нужен только затем, чтобы в zip была папка mainline-extras/rootfs-files: блок установщика, копирующий прошивки с телефона
+   (ADSP/GPU/IPA/Venus/BT/датчики/модем, update-binary стр. ~663–720), вложен в `if [ -d "$EXTRAS/rootfs-files" ]`, а пустую папку zip не хранит.
+   На будущее (не сделано): вынести копирование прошивок из этого условия — тогда метка не нужна.
+
+2. Часовой пояс из мастера / «Настройки → Время и дата» не применялся (Киев выбран, время UTC, /etc/localtime нет): модуль TimeDate
+   вызывает org.freedesktop.timedate1.SetTimezone без запроса пароля, а политика systemd — auth_admin_keep → polkit молча отказывал
+   (так во всех версиях 003). rootfs-files/etc/polkit-1/rules.d/50-m52xq-timedate.rules a7d07f62…: set-timezone / set-time / set-ntp
+   разрешены активному локальному пользователю группы wheel. Поставлено 2026-11-10 ~01:53; ✅ пользователь выбрал Киев в Настройках —
+   «применился». (Метка lomiri-release лежит отдельно в mainline-extras; файлы правок — в rootfs-files, в zip не кладутся.)
+3. Проверено без правок: быстрая зарядка AFC 9 В (sm5714: «AFC 9000 mV: ok, VBUS 8700 mV», вход 1650 мА, заряд до 2900 мА).
+4. Ночной замер сна (по «включай», 2026-11-10 ~04:0x EET): /etc/m52xq-soclog-verbose создан (в образ НЕ брать — build-v7-image.sh исключает);
+   APF=2, WoWLAN взведён, keep-wifi df77a05a, powerkey 97122573, XTRA загружена; Wi-Fi <home-wifi-5G-2> + мобильные данные SIM2.
+5. Итог ночи 2026-11-10 (v1-v7 + правка polkit, APF=2, Wi-Fi держится на сон, verbose-журнал): пользователь «7ч 7 проц».
+   23 засыпания, 0 ошибок, 0 падений WPSS (в тех же условиях, где 2026-11-10 00:12 было «CSS sleep failure … UMAC lock»).
+   Длинный сон 05:52 → 10:12 (15 588 с): 43,6 мА, модем спит 91 %, WPSS 99 %. Короткие сны 4–12 мин (пробуждения по Wi-Fi, irq 211,
+   каждые 5–10 мин) — заряд не успевает измениться. Утром 11:02–12:17 — 95–122 мА (причина не выяснена: сигнал SIM 57–60 % против 63–65 %
+   ночью, малая выборка). Wi-Fi сам перешёл на <home-wifi-5G> (сеть снова в эфире).
+
+6. РЕЛИЗ v1 СОБРАН (2026-11-10 13:2x, по «собирай в1 на базе в8 для релиза»; НЕ ПРОШИТ):
+   postmarketos-lomiri-m52xq-mainline-v1-UNOFFICIAL.zip, 1 411 797 780 Б, md5 eba0bbd593c733a6f49ccc6ab4d63ac2, unzip -t: No errors.
+   - Новый снимок НЕ делался (по замечанию пользователя: менялись только метка и правило polkit): data/rootfs-chunks = симлинки на
+     в7/data/rootfs-chunks (части образа v1-v7, cat = a1ce7c39…; zip без -y раскрыл их), firmware/ = копии в7 (64c1ce0d, 8ce2ea61, 7202d445),
+     META-INF = в7 (update-binary 932b567f), mainline-extras/rootfs-files = метка etc/m52xq/lomiri-release 86d22a55 («postmarketos-lomiri v1»)
+     + etc/polkit-1/rules.d/50-m52xq-timedate.rules a7d07f62 (в образе v1-v7 его нет → установщик кладёт поверх; rules.d станет 0755 root:root,
+     polkitd читает). find -xtype l = 0. Внутренняя метка образа /etc/m52xq/lomiri-v5 остаётся «lomiri v1-v7».
+   - `cd 003/в8 && zip -9 -r ../postmarketos-lomiri-m52xq-mainline-v1-UNOFFICIAL.zip META-INF data firmware mainline-extras -x 'test-images/*' > ../zip-v1-release.log`
+   - Остановленная сборка нового снимка (/home/sasha/003-v8-build) удалена по «да».
+   - ПРОШИТ для проверки 2026-11-10 (по «заливай в8 в дата на ней проверим»): adb push в /data, md5 eba0bbd5…; TWRP RC=0, 90 с;
+     «rootfs-files copied» (метка + правило polkit); прошивки и адрес BT — с телефона. Дальше правки — в в9 (по команде), этот архив не трогать.
