@@ -1,17 +1,18 @@
 # postmarketOS + Lomiri on a mainline kernel for the Samsung Galaxy M52 5G (m52xq) — full manual
 
-Document version: 2026-11-02. Latest archive: **lomiri v5** (2026-10-30).
-
-> Release **unofficial v1** (2026-11-10): what changed after v5 — [CHANGES-v1.md](CHANGES-v1.md). Install v1 as in section 4, archive `postmarketos-lomiri-m52xq-mainline-v1-UNOFFICIAL.zip`.
+Document version: 2026-11-10. Release: **unofficial v1** (2026-11-10), archive `postmarketos-lomiri-m52xq-mainline-v1-UNOFFICIAL.zip`.
+What changed after the archive v5: [CHANGES-v1.md](CHANGES-v1.md).
 
 ## 1. What this is
 
 - Device: Samsung Galaxy M52 5G, SM-M526B / SM-M526BR, Snapdragon 778G (SM7325, platform "yupik"), codename `m52xq`.
-- Kernel: **mainline Linux 7.1.2**, build **#430** (boot v241 + vendor_boot v238) — the same kernel as the Plasma port, no Halium, no libhybris.
-- System: **postmarketOS edge** (Alpine) with the **Lomiri 0.6.2** shell (Ubuntu Touch), **without Plasma**. 1102 packages (`docs/packages-003.txt`).
-- Phone hardware support (kernel, firmware handling, `m52xq-*` services) is shared with the Plasma port, repository
+- Kernel: **mainline Linux 7.1.13** with device patches — the same kernel as the Ubuntu Lomiri port (classic), no Halium, no libhybris.
+  All drivers are native Linux drivers (DRM/KMS, ALSA, QMI modem).
+- System: **postmarketOS edge** (Alpine, systemd) with the **Lomiri 0.6.2** shell (Ubuntu Touch), **without Plasma**. Base package list: `docs/packages-003.txt`.
+- Phone hardware support (firmware handling, `m52xq-*` services) is shared with the Plasma port, repository
   [samsung-m52xq-mainline](https://github.com/korryasdlerto-lgtm/samsung-m52xq-mainline). This repository holds what was done for Lomiri on top of it.
-- Personal hobby port, tested on one SM-M526B.
+- Unofficial port: not a postmarketOS or UBports release. Personal hobby project, tested on one SM-M526B.
+- Wiki page: [User:Asdlerto Korry](https://wiki.nura.eco/wiki/User:Asdlerto_Korry)
 
 Videos:
 - installation: https://www.youtube.com/watch?v=7mkKoSjPERk
@@ -19,208 +20,253 @@ Videos:
 
 ## 2. What works
 
-| Feature | Status | Notes |
+| Feature | State | Notes |
 |---|---|---|
-| Boot, Lomiri shell | works | tinydm session `m52xq-lomiri.desktop` → `/usr/local/bin/m52xq-start-lomiri`; "postmarketOS / Lomiri" boot splash |
-| Display, GPU, touch | works | Mir via gbm-kms and Mesa freedreno; S6E3HAB panel; Synaptics TCM |
-| On-screen keyboard | works | maliit (Qt6), `m52xq-osk-bridge` for text-input-v3 applications (Firefox) |
-| Calls | works | plasma-dialer on 2 SIMs with Lomiri changes (over the lock screen, ringtone and vibration `m52xq-ringtone`, SIM number in the call log) |
+| Boot, Lomiri shell | works | boots from UFS, 8 GB system partition; tinydm session `m52xq-lomiri.desktop` → `m52xq-start-lomiri`; "postmarketOS / Lomiri" splash |
+| First-run wizard | works | language, Wi-Fi, time zone (the chosen time zone is applied: polkit rule for systemd-timedated) |
+| Display, GPU, touch | works | Mir on gbm-kms + Mesa freedreno (Adreno 642L); S6E3HAB panel, brightness, auto-rotation; Synaptics; fast taps on the dial pad are not lost |
+| On-screen keyboard | works | maliit (Qt6), bridge `m52xq-osk-bridge` for text-input-v3 apps (Firefox) |
+| Calls | works | plasma-dialer on 2 SIMs adapted to Lomiri: call window on the lock screen, call bar with call time and name, loudspeaker/earpiece switch during a call |
+| Calls in sleep | works | the screen turns on for a modem call; after the call the lock screen comes back (no stuck dialer) |
 | SMS | works | Spacebar on several modems; unread messages in the Lomiri messaging indicator (`m52xq-messaging-bridge`) |
-| Mobile data, two SIMs | works | ModemManager with DSDS patches; SIMs in the indicator shade; SIM mode menu |
-| Wi-Fi, Bluetooth | works | Wi-Fi stays up in sleep and wakes the phone on a packet (WoWLAN, own `ath11k_ahb.ko`) |
-| Audio | works | loudspeaker, earpiece, microphones; `m52xq-audio-reprobe` retries the VA macro probe |
-| Camera | works | `lomiri-camera-app` with patches: video through the Venus hardware encoder 1080p/4K (≤ 24 fps), AAC, tap to focus, 16 MP without the checkerboard |
-| GPS | partial | ModemManager GNSS → gpsd → lomiri-location-service (`m52xq-gnss-gpsd`); no fix indoors |
-| Suspend | works | short power key press locks and blanks (`m52xq-powerkey`); wakes for calls, SMS, Wi-Fi packets |
-| Swap | works | zram 7.4 GB (zstd) |
-| Maps | works | Pure Maps (osmscout-server, online profile), Organic Maps |
-| Fingerprint | no | |
+| Two SIMs, mobile data | works | ModemManager with DSDS patches; SIM manager: SIM power, mode (dual / SIM1 only / SIM2 only), data SIM and data switch, in sync with the quick settings |
+| Contacts | works | names in the dialer and the call log |
+| Wi-Fi, Bluetooth | works | WCN6750; Wi-Fi stays connected in sleep and wakes the phone for incoming traffic (WoWLAN + APF); Bluetooth audio |
+| Telegram Desktop | works | messages and calls arrive in sleep, the screen turns on for a call, call audio in the earpiece |
+| Audio | works | loudspeaker, earpiece, microphones, in-call noise suppression |
+| Camera | works | `lomiri-camera-app` with our own GStreamer source: rear and front, digital zoom up to 4x, video with the Venus hardware encoder; Megapixels adapted to Lomiri |
+| GPS | works | ModemManager GNSS → gpsd → lomiri-location-service; XTRA assistance data for a fast fix; Pure Maps |
+| Sensors | works | light, proximity (screen off at the ear), accelerometer |
+| Battery, charging | works | battery level, Samsung AFC 9 V fast charging |
+| Suspend | works | about 1 % per hour overnight with Wi-Fi connected; wakes for calls, SMS, alarms; the screen stays dark on network wake-ups |
+| Alarm | works | wakes the phone from sleep (RTC) |
+| Swap | works | zram (zstd) |
+| Fingerprint, VoLTE | no | calls use 2G/3G |
 
-Known issues in v5:
-- the camera keeps Venus busy after recording stops — the media player cannot open 4K while the camera is open;
-- 4K on the front camera ≈ 17 fps;
-- waking on a packet occasionally fakes a key press and lights up the screen;
-- a ping from a host without an ARP cache entry may not wake the phone (the APF filter drops broadcast ARP);
-- `apk upgrade` replaces our builds (ModemManager, libcamera, plasma-dialer, …) with edge packages.
+Known issues of v1:
+- rarely the Wi-Fi firmware crashes during a long sleep and Wi-Fi stays off — a reboot brings it back;
+- after switching networks the Wi-Fi icon in the top bar can disappear although Wi-Fi is connected — a reboot fixes it;
+- a "System Settings → Time & Date" window that was open before the time zone changed keeps showing the old time — close and reopen it;
+- not every camera lens and mode is supported; image processing is done in software;
+- `apk upgrade` replaces the patched packages of the port (ModemManager, plasma-dialer, Kirigami and others) with edge packages — do not run a full upgrade.
 
 ## 3. Requirements
 
 - SM-M526B with an **unlocked bootloader**;
 - TWRP for m52xq: https://github.com/saadelasfur/Action-Recovery-Builder/releases/tag/20261004173308 ;
-- a microSD card (Format Data erases the internal storage);
-- a PC with Odin and the stock firmware for your model, to go back if needed.
+- a microSD card with the zips (Format Data erases the internal storage);
+- a PC with Odin and the stock firmware for your model and region, in case you want to go back.
 
-**Back up first.** From TWRP save at least EFS, persist, modem, boot, vendor_boot and vbmeta, and copy them to a PC.
+**Backups first.** From TWRP back up at least EFS, persist, modem, boot, vendor_boot, vbmeta and copy them to your PC.
 
-Firmware comes from your own phone: the installer copies the modem firmware, the Bluetooth address (EFS) and the sensor registry
-(persist) from the phone itself (read-only). So `apnhlos`, `vendor`, `modem`, `persist` and `EFS` must be intact, and `vendor` must
-come from a Samsung-based ROM (stock, UN1CA or LineageOS).
+**Device firmware is taken from your own phone.** The zip contains no proprietary firmware: the installer copies the DSP, GPU,
+IPA (mobile data), video codec, Bluetooth and modem firmware and the sensor configs from the phone's own `apnhlos`, `vendor`,
+`modem`, `persist` and `EFS` partitions (read-only). So these partitions must be intact, and `vendor` must come from a
+Samsung-based ROM (stock, UN1CA or LineageOS). The phone also gets its own Bluetooth address, SSH keys and machine ID during the
+install and the first boot.
 
-## 4. Installing with TWRP
+## 4. Installation with TWRP
 
-Archive: `postmarketos-lomiri-m52xq-mainline-v5.zip`, 1 570 774 902 bytes, md5 `a7b6255ca8080f1251fd8b243fe26ab1`
-(not published in the repository: it contains the built system image; build it as described in section 8).
+Archive: `postmarketos-lomiri-m52xq-mainline-v1-UNOFFICIAL.zip`, 1 411 797 780 bytes (1.3 GB), md5 `eba0bbd593c733a6f49ccc6ab4d63ac2`.
+Download: https://drive.google.com/file/d/1oQfJQ7r_41BDXRptXBHdAxwSDonf08J7/view?usp=sharing
+(the archive is not in the repository: it contains a built system image; section 8 shows how it is built).
 
-System partition size: the installer grows `system` to 8 000 000 000 bytes. Flashing **UN1CA_3.1.0** first gives the largest
-partition; after LineageOS 23 it is 1 GB smaller, and the installation still works.
+**Warning:** the phone gets warm during the install. If your display already shows vertical coloured lines, do not install this:
+the heat may make them worse.
+
+System partition size: the installer grows the system partition to 8 000 000 000 bytes, and the system then fills it entirely.
+Flash **UN1CA_3.1.0** first to get the maximum partition size; after LineageOS 23 the partition is 1 GB smaller, but the install still succeeds.
 
 TWRP steps (as in the video):
 ```
 Wipe - Format Data - yes - enter - Back - Back - Advanced Wipe - Data - Repair or Change File System - Change File System - EXT4 -
-Swipe to Change - Back - Back - Back - Back - Back - Install - Select Storage - Micro SD card - UN1CA_3.1.0-a5bf09f2_20260604_m52xq-sign.zip -
-Swipe to confirm Flash - Back - Back - Wipe - Format Data - enter - Back - Back - Advanced Wipe - Data - Repair or Change File System -
-Change File System - EXT4 - Swipe to Change - Back - Back - Back - Back - Back - Install - postmarketos-lomiri-m52xq-mainline-v5.zip -
-Swipe to confirm Flash - Reboot System
+Swipe to Change - Back - Back - Back - Back - Back - Install - Select Storage - Micro SD card -
+postmarketos-lomiri-m52xq-mainline-v1-UNOFFICIAL.zip - Swipe to confirm Flash - Reboot System
 ```
-- The installation takes about 2 minutes and must end with `Updater process ended with RC=0`.
-- "Failed to mount /system_root" at the end is normal for a pmOS image (TWRP expects Android).
-- If `/data` contains a `rootfs.img`, the boot loader prefers it — remove or rename it first.
+- Coming from v5 or an older archive, do the same clean install (Format Data).
+- The install takes about 2 minutes; it must end with `Updater process ended with RC=0`.
+- "Failed to mount '/system_root'" at the very end is normal for a pmOS image (TWRP expects Android).
+- The first boot takes longer; then the setup wizard starts: language, Wi-Fi, time zone.
+- If `/data` has a `rootfs.img` in its root, the boot loader prefers it — remove or rename it before installing.
 
 What the installer does (`installer/META-INF/com/google/android/update-binary`):
-1. grows the `system` dynamic partition (super) to 8 000 000 000 bytes;
-2. joins the chunks `data/rootfs-chunks/samsung-m52xq.img.part-*` and writes the image to `/dev/block/mapper/system`
+1. writes `firmware/boot_v256_k7.1.13_panel-sleep.img` to `boot`, after adding the IPA firmware from the phone's `apnhlos`
+   partition to its ramdisk (IPA is built into the kernel and starts before the root is mounted);
+2. writes `firmware/vendor_boot_m52xq-local-v35-rtc.img` to `vendor_boot` and `firmware/dtbo-frag-m52xq.img` to `dtbo`;
+3. grows the `system` partition (dynamic partition in super) to 8 000 000 000 bytes;
+4. joins the chunks `data/rootfs-chunks/samsung-m52xq.img.part-*` and writes the image to `/dev/block/mapper/system`
    (GPT, 4096-byte sectors, p1 `pmOS_boot`, p2 root — the first boot grows p2 to the whole partition);
-3. writes `firmware/boot_v241_nfc.img` to `boot` and `firmware/vendor_boot_v238_nfc_se9.img` to `vendor_boot`;
-4. copies `mainline-extras/rootfs-files` over the root (this is `rootfs-overlay/` of this repository), compiles GSettings and
-   restores the service links (`*.wants`);
-5. takes from the phone: the Bluetooth address from EFS, the modem firmware, the sensor registry from persist (owned by the image's `fastrpc` user).
+5. puts the files of `mainline-extras/rootfs-files` over the root (in v1: the polkit time zone rule and the marker
+   `/etc/m52xq/lomiri-release`), compiles GSettings;
+6. takes from the phone (read-only): the Bluetooth address from EFS; the ADSP, GPU, IPA, Venus firmware from `apnhlos`; the
+   Bluetooth firmware and sensor configs from `vendor`; the modem firmware from `modem`; the sensor registry from `persist`.
 
-**Default password** (unlock and root): **112233** — set on first boot by `m52xq-set-default-password`.
-Change it in a terminal: `printf "user:NEW\n" | sudo chpasswd`.
+The installer does not touch `userdata`.
 
-USB access: `ssh user@172.16.42.1` (USB networking by `m52xq-usbnet`).
+**Default password** (4-digit screen unlock, user `user` and root): **1111**.
+Change it in "System Settings → Security & Privacy" or in a terminal: `printf "user:NEW\n" | sudo chpasswd`.
+
+SSH over USB (about 30 s after boot): `ssh user@172.16.42.1`, password 1111 (USB networking is set up by `m52xq-usbnet`).
+
+Screenshot: press **Volume Up + Volume Down** together; the file goes to `~/Pictures/Screenshots`.
 
 ## 5. Going back to Android
 
 Video: https://www.youtube.com/watch?v=0lgLbtdl4rA
+
+Works for going back to LineageOS or UN1CA; stock is better restored with Odin or Heimdall. If the port you are leaving has no
+reboot-to-recovery option, enter recovery with the usual power and volume key combination. Copy the firmware zip to the microSD first.
 ```
 Wipe - Format Data - yes - enter - Back - Back - Back - Advanced Wipe - Data - Repair or Change File System - Change File System - EXT4 -
 Swipe to Change - Back - Back - Back - Back - Back - Install - lineage-23.2-2026-nightly-m52xq-signed.zip - Back - Back - Wipe -
 Format Data - enter - Reboot System
 ```
-Stock Samsung firmware can always be restored with Odin (BL, AP, CP, CSC).
+Latest LineageOS build: https://download.lineageos.org/devices/m52xq/builds .
+Stock firmware can always be restored with Odin (BL, AP, CP, CSC).
 
 ## 6. Kernel
 
-Ready files — release [kernel-7.1.2-430](../../releases/tag/kernel-7.1.2-430) of this repository:
+Details: [kernel/README.md](../kernel/README.md): `kernel/config-7.1.13` and the changes in `kernel/patches/*.diff`
+(call device switch without new q6voice sessions, panel sleep while the brightness is 0, ath11k power save with the radio off).
 
-| File | What it is |
-|---|---|
-| `boot_v241_nfc.img` | boot image (kernel #430 + postmarketOS initramfs), md5 `f89bec954c6f3d4933503d260fce83a4` |
-| `vendor_boot_v238_nfc_se9.img` | vendor_boot with the phone DTB (NFC, SE9), md5 `e1fb7dd3d01ad972f07887e0295e8fd7` |
-| `Image` | the arm64 kernel from boot v241 (no DTB appended — the DTB is in vendor_boot) |
-| `config-7.1.2-430` | full `.config` of the build (clang 22 / LLD 22, `make ARCH=arm64 LLVM=1`) |
-| `modules-7.1.2-430.tar.gz` | modules, layout `lib/modules/7.1.2/…`: `ath11k_ahb.ko` (v5 variant with resume retries), `extra/v4l2loopback.ko`, `extra/venus/*` |
-| `SHA256SUMS` | checksums |
+Binaries (`boot.img`, `vendor_boot.img`, `dtbo-frag.img`, `Image`, `modules-7.1.13.tar.gz`, `SHA256SUMS`): release
+[kernel-7.1.13](https://github.com/korryasdlerto-lgtm/samsung-m52xq-ubuntu-lomiri/releases/tag/kernel-7.1.13) of
+samsung-m52xq-ubuntu-lomiri. The images in `firmware/` of the v1 zip are byte-identical to `boot.img`, `vendor_boot.img`,
+`dtbo-frag.img` of that release (sha256 `2b5962c1…`, `53965b55…`, `c9114568…`).
 
-Almost every driver is built in; only Wi-Fi AHB, v4l2loopback and Venus are modules (Venus is loaded by `m52xq-venus-load` with insmod).
-`MODVERSIONS` is off — install the modules only together with this boot image.
+The device tree is upstream-style with local nodes; RTC is enabled (alarm from sleep). Almost all drivers are built in; only
+Wi-Fi AHB, v4l2loopback and Venus are modules. `MODVERSIONS` is off — install the modules only together with this boot image.
 
 Flashing the kernel alone (phone in TWRP, files in `/data`):
 ```sh
-adb push boot_v241_nfc.img vendor_boot_v238_nfc_se9.img /data/
-adb shell 'dd if=/data/boot_v241_nfc.img of=/dev/block/by-name/boot bs=4M && dd if=/data/vendor_boot_v238_nfc_se9.img of=/dev/block/by-name/vendor_boot bs=4M && sync'
+adb push boot.img vendor_boot.img dtbo-frag.img /data/
+adb shell 'dd if=/data/boot.img of=/dev/block/by-name/boot bs=4M && dd if=/data/vendor_boot.img of=/dev/block/by-name/vendor_boot bs=4M && dd if=/data/dtbo-frag.img of=/dev/block/by-name/dtbo bs=4M && sync'
+adb shell 'md5sum /dev/block/by-name/boot | head -c 32; echo'      # to compare, read as many bytes as the file has
 ```
-Kernel source: [sc7280-mainline-linux-m52xq](https://github.com/korryasdlerto-lgtm/sc7280-mainline-linux-m52xq)
-(branch `master` is the newer #437; build #430 differs from it mostly in debug code). The v5 ath11k change:
-`build/v5/ath11k-ahb/ahb.c.m52xq-resume` (built in place of `drivers/net/wireless/ath/ath11k/ahb.c`).
+Without the installer the IPA firmware is not added to boot and mobile data will not work — flash the kernel alone only if you know that.
+
+Kernel source: [sc7280-mainline-linux-m52xq](https://github.com/korryasdlerto-lgtm/sc7280-mainline-linux-m52xq).
+Old kernel of the archives v2–v5: `kernel/config-7.1.2-430` and release kernel-7.1.2-430 of this repository.
 
 ## 7. Repository layout
 
 | Folder | Contents |
 |---|---|
-| `installer/META-INF` | TWRP installer (`update-binary`, `updater-script`), banner "lomiri v5" |
-| `rootfs-overlay/` | every file put over the image in versions 2–5 (scripts, services, QML, configs); binaries are listed in `rootfs-overlay/EXCLUDED-FILES.txt` with md5 |
-| `image/` | root build: `build-layer.sh`, package list `world-003.txt`, repositories, device package `device-pkg`, session `extra-003`, boot splash `splash` |
-| `build/v2…v5/` | sources and patches of every rebuilt program by version (section 9) |
-| `docs/` | this manual (RU/EN), the work log `ЖУРНАЛ-УБУНТУТАЧ24.md`, all commands `КОМАНДЫ-УБУНТУТАЧ24.md`, to-do lists by version, "what's new in v5" (Russian) |
+| `installer/META-INF` | TWRP installer (`update-binary`, `updater-script`) of release v1 |
+| `rootfs-overlay/` | all files put over the image in versions 2 – v1 (scripts, services, sleep hooks, QML, configs); binaries listed in `rootfs-overlay/EXCLUDED-FILES.txt` (path, size, md5) |
+| `image/` | root build: `build-layer.sh`, package lists, repositories, device package `device-pkg`, session `extra-003`, splash `splash`; `build-v6/v7/v8-image.sh` — release image snapshot |
+| `build/v2…v7/` | sources and patches of every rebuilt program, per version (section 9) |
+| `kernel/` | kernel configs and changes |
+| `docs/` | this manual (EN/RU, Markdown and Word), CHANGES-v1, work log `ЖУРНАЛ-УБУНТУТАЧ24.md`, all commands `КОМАНДЫ-УБУНТУТАЧ24.md`, "what's new" v5–v9, to-do lists |
 
-## 8. Building from scratch
+Personal data of the test phone (Bluetooth address, sensor registry, Wi-Fi networks, SIM data, keys, coordinates) is not in the repository.
 
-This is the build outline with the key commands. The exact commands run for every version (with output and md5) are in
-`docs/КОМАНДЫ-УБУНТУТАЧ24.md` and `docs/ЖУРНАЛ-УБУНТУТАЧ24.md` (sections "Этап 3" and "Архив lomiri vN").
+## 8. Building
 
-Host: Ubuntu 20.04 x86_64, `qemu-user-static` + binfmt (F flag), pmbootstrap (for `apk.static` and the keys), about 20 GB free.
+The exact commands run for every version (with output and md5) are in `docs/КОМАНДЫ-УБУНТУТАЧ24.md` and
+`docs/ЖУРНАЛ-УБУНТУТАЧ24.md`; what changed in every version — `docs/ЧТО_НОВОГО-v5.txt` … `-v9.txt` (Russian).
+
+Host: Ubuntu 20.04 x86_64, `qemu-user-static` + binfmt (flag F), pmbootstrap (for `apk.static` and the keys), about 20 GB of space.
+
+The v1 image was made in two stages: the base root (8.1–8.3, archives v2–v5); then the fixes of v6–v8 were installed and tested
+on the phone, and a clean snapshot was taken from the configured phone (8.4).
 
 ### 8.1. postmarketOS edge + Lomiri root
-pmbootstrap's pmaports are on v26.06 and `postmarketos-ui-lomiri` exists only in edge, so the root is installed with `apk.static`
-directly, with the phone's repositories (`image/repositories`) and a separate cache:
+pmbootstrap's pmaports is on branch v26.06 and `postmarketos-ui-lomiri` exists only in edge, so the root is installed with
+`apk.static` directly, using the phone's repositories (`image/repositories`) and a separate cache:
 ```sh
 R=$PWD/rootfs; mkdir -p $R/etc/apk; cp image/repositories $R/etc/apk/repositories
 sudo cp -a ~/.local/var/pmbootstrap/config_apk_keys $R/etc/apk/keys
 sudo ~/.local/var/pmbootstrap/apk.static --arch aarch64 --root $R --initdb --cache-dir $PWD/apk-cache \
      --allow-untrusted add $(grep -v '^#' image/world-003.txt)
 ```
-Contents (`world-003.txt`, 70 names → 1102 packages): a base like the phone's (`postmarketos-base`, `-systemd`, `postmarketos-mkinitfs`,
-sudo-rs), `postmarketos-ui-lomiri`, `lomiri-ui-extras-qt5`, `maliit-keyboard`, ayatana indicators, ModemManager, rmtfs, tqftpserv,
-hexagonrpcd, qrtr, libssc, iio-sensor-proxy, `postmarketos-usb-moded`, Megapixels, Firefox, Organic Maps, Lomiri apps.
-`telegram-desktop` is not included (edge 7.3.3 needs the missing `libada.so.3`; our ada build — `build/v3/ada3/APKBUILD`).
+Contents (`world-003.txt`): the phone's base (`postmarketos-base`, `-systemd`, `postmarketos-mkinitfs`, sudo-rs),
+`postmarketos-ui-lomiri`, `lomiri-ui-extras-qt5`, `maliit-keyboard`, ayatana indicators, ModemManager, rmtfs, tqftpserv, hexagonrpcd,
+qrtr, libssc, iio-sensor-proxy, `postmarketos-usb-moded`, Megapixels, Firefox, Organic Maps, Lomiri apps.
+Packages added on the phone later: `image/phone-world.txt`.
 
 ### 8.2. m52xq hardware layer
-`image/build-layer.sh` (reproducible) applies in this order:
-1. the Plasma port overlay (`samsung-m52xq-mainline/rootfs-overlay`, v42 state) without Plasma/KDE;
+`image/build-layer.sh` applies, in order:
+1. the Plasma port overlay (`samsung-m52xq-mainline/rootfs-overlay`) without Plasma/KDE;
 2. a layer read from the phone (firmware, `/etc/m52xq`, sensor registry, `/usr/local`, udev, NM/ssh/polkit, `m52xq-*` units) —
-   **not in the repository**, these are the phone's personal data; the installer creates them on your own phone;
+   **not in the repository**: it is personal data and proprietary firmware of the phone; the installer takes it from your phone itself;
 3. Lomiri fixes: LightDM.IntegratedLightDM and SystemSettings.Update stubs, `lomiri-bin` wrappers, maliit on wayland, deviceinfo (GridUnit 21);
-4. `image/extra-003`: tinydm session, own `fstab` (logs, coredumps, apk cache on userdata; home stays in the image), portrait by default;
-5. kernel #430 modules (`modules-7.1.2-430.tar.gz` from the release) and the device package `image/device-pkg`.
+4. `image/extra-003`: tinydm session, own `fstab` (logs, coredumps, apk cache on userdata; home in the image), portrait by default;
+5. the kernel modules and the device package `image/device-pkg`.
 
-Differences of current edge handled by hand: `/lib`, `/sbin` are real directories (firmware in `/lib/firmware`, links from
-`/usr/lib/firmware`); `fastrpc` is 103:105 (the installer re-owns the sensor registry); user `user` 10000:10000, groups wheel audio input
-video netdev plugdev feedbackd; directory modes restored from the apk database; `hexagonrpcd-sdsp` and `routewrangler` disabled.
+Differences of current edge handled by hand: `/lib` and `/sbin` are real directories (firmware in `/lib/firmware`, links from
+`/usr/lib/firmware`); `fastrpc` = 103:105 (the installer re-owns the sensor registry); user `user` 10000:10000, groups wheel audio
+input video netdev plugdev feedbackd; directory permissions restored from the apk database; `hexagonrpcd-sdsp` and `routewrangler` disabled.
 
-### 8.3. Changes of versions 2–5
-Copy `rootfs-overlay/` over the root (owned by root, modes as in the overlay):
+### 8.3. Changes of versions 2 – v1
+Put `rootfs-overlay/` over the root (owner root, modes as in the overlay) and build the binaries from `build/` (section 9):
 ```sh
 sudo cp -a --no-preserve=ownership rootfs-overlay/. $R/
+sudo rm $R/EXCLUDED-FILES.txt
 sudo chroot $R glib-compile-schemas /usr/share/glib-2.0/schemas
 ```
-The binaries listed in `EXCLUDED-FILES.txt` are built from `build/` (section 9) or taken from the release (modules).
+Binaries and modules are listed in `rootfs-overlay/EXCLUDED-FILES.txt` with md5, so you can check your own build.
 
-### 8.4. Image and archive
+### 8.4. Release image (snapshot of a configured phone)
+`image/build-v8-image.sh` copies the root from the phone over USB (GNU tar 1.35 with xattrs and file capabilities; busybox tar loses
+them; sleep is blocked with `systemd-inhibit` during the copy) into a fresh ext4, keeping the layout, `pmOS_boot` and the clean
+`/home` of the base image:
 ```sh
-# GPT image, 4096-byte sectors: p1 pmOS_boot (from the Plasma archive v35), p2 root (type B921B045, label pmOS_root)
-truncate -s 5338300416 samsung-m52xq.img
-L=$(sudo losetup -f --show -P --sector-size 4096 samsung-m52xq.img)    # partition the 4096-sector loop device, not the file
-sudo sgdisk -o -n1:2048:124927 -c1:pmOS_boot -n2:124928:0 -t2:B921B045-1DF0-41C3-AF44-4C6F280D3FAE -c2:pmOS_root $L
-sudo partprobe $L
-sudo dd if=pmOS_boot.img of=${L}p1 bs=4M; sudo mkfs.ext4 -L pmOS_root -b 4096 ${L}p2
-sudo mount ${L}p2 /mnt && sudo cp -a $R/. /mnt/ && sudo umount /mnt && sudo e2fsck -fy ${L}p2 && sudo losetup -d $L
-# archive: chunks + installer + kernel + overlay
-mkdir -p archive/data/rootfs-chunks archive/firmware archive/mainline-extras/rootfs-files
-split -b 2669150208 -d -a 1 samsung-m52xq.img archive/data/rootfs-chunks/samsung-m52xq.img.part-
-cp -a installer/META-INF archive/; cp boot_v241_nfc.img vendor_boot_v238_nfc_se9.img archive/firmware/
-cp -a rootfs-overlay/. archive/mainline-extras/rootfs-files/; rm archive/mainline-extras/rootfs-files/EXCLUDED-FILES.txt
-find archive -xtype l                                     # there must be no broken links
-cd archive && zip -9 -r ../postmarketos-lomiri-m52xq-mainline-vN.zip . && cd ..   # from inside the folder, no prefix
-unzip -t postmarketos-lomiri-m52xq-mainline-vN.zip | tail -1
+OLD=base-v3.img NEW=samsung-m52xq-lomiri-v1-release.img PATTERNS=personal-values.txt ./image/build-v8-image.sh
 ```
-Before packing a root captured from a phone, remove its personal data: `etc/m52xq/{bt_addr,data-sim,sim-mode}`, `lib/firmware/modem*`,
-the sensor registry `usr/share/qcom/…/sensors/registry/*`, Wi-Fi `*.nmconnection` (except `m52xq-mobile-internet`), `var/lib/bluetooth/*`,
-`etc/ssh/ssh_host_*`, `etc/machine-id` (leave empty), history, caches, logs (`build/v3/clean-image-v3.sh`).
+Excluded: `/home`, logs, caches, coredumps, Wi-Fi networks (`<HOME-WIFI>*` — put the names of your own profiles there), Bluetooth
+pairings, SIM choices (`etc/m52xq/{bt_addr,data-sim,sim-mode,sms-sim}`), `etc/ssh/ssh_host_*` keys, machine ID (left empty),
+proprietary firmware (`lib/firmware/{adsp*,modem*,a660_zap*,yupik_ipa_fws*,qca/*,qcom/vpu-2.0/*}`) and the sensor configs/registry.
+The `root` and `user` passwords are set to 1111. At the end the script searches the image for personal values (Bluetooth address
+and MAC, IMEI, IMSI, ICCID, phone numbers, password hashes, the lines of `PATTERNS`) and fails if it finds any.
+
+### 8.5. Archive
+The v1 image chunks are those of the flashed and tested archive; the kernel comes from release kernel-7.1.13 under the names the
+installer expects. `mainline-extras` must hold at least one file: the block that copies firmware from the phone is nested inside
+the check for `mainline-extras/rootfs-files`.
+```sh
+mkdir -p archive/data/rootfs-chunks archive/firmware archive/mainline-extras/rootfs-files/etc/m52xq archive/mainline-extras/rootfs-files/etc/polkit-1/rules.d
+split -b 2479603712 -d -a 1 samsung-m52xq-lomiri-v1-release.img archive/data/rootfs-chunks/samsung-m52xq.img.part-
+cp -a installer/META-INF archive/
+cp boot.img        archive/firmware/boot_v256_k7.1.13_panel-sleep.img
+cp vendor_boot.img archive/firmware/vendor_boot_m52xq-local-v35-rtc.img
+cp dtbo-frag.img   archive/firmware/dtbo-frag-m52xq.img
+cp rootfs-overlay/etc/polkit-1/rules.d/50-m52xq-timedate.rules archive/mainline-extras/rootfs-files/etc/polkit-1/rules.d/
+echo "postmarketos-lomiri v1" > archive/mainline-extras/rootfs-files/etc/m52xq/lomiri-release
+find archive -xtype l                                     # there must be no broken links
+cd archive && zip -9 -r ../postmarketos-lomiri-m52xq-mainline-v1-UNOFFICIAL.zip . && cd ..   # from inside the folder, no prefix
+unzip -t postmarketos-lomiri-m52xq-mainline-v1-UNOFFICIAL.zip | tail -1
+```
+Files that are already in the image are not put into `mainline-extras` again.
 
 ## 9. Rebuilt programs (`build/`)
 
-| Folder | What was changed |
+| Folder | What changed |
 |---|---|
 | `v2/maliit-qt6` | maliit-framework for Qt6 (CMake from master and PR 125) |
 | `v3/integratedlightdm` | LightDM stub for Lomiri without lightdm (patches 0001–0006, APKBUILD) |
-| `v3/lomiri-app-launch` | `0002-m52xq-posix-reap-children-per-app-pids-stop` — stopping an app's processes |
-| `v3/lomiri-launcher`, `v3/lomiri-shell` | launcher index taken at press time; two wallpapers (desktop / lock screen) |
-| `v3/lomiri-system-settings` | "About" for mainline (IMEI from ModemManager, OS, apk licenses), brightness, Russian translation |
-| `v3/lomiri-camera-app`, `v5/lomiri-camera-app` | optional QZXing, 4K video, 16 MP binned |
-| `v3/m52xqcamsrc`, `v5/m52xqcamsrc` | own GStreamer camera source with Venus hardware encoding and autofocus |
-| `v3/libcamera` | APKBUILD + soft-ISP patches (S5KGW3 tetracell remosaic, no sensor writes without AGC) |
-| `v3/plasma-dialer`, `v4/dialer-*`, `v4/incoming-call` | 2 SIMs, calls over the lock screen, no fullscreen mode, "add contact", SIM in the log, call decision in Lomiri |
+| `v3/lomiri-app-launch` | `0002-m52xq-posix-reap-children-per-app-pids-stop` — stopping app processes |
+| `v3/lomiri-launcher`, `v3/lomiri-shell` | launcher index at press time; two wallpapers (desktop / lock screen) |
+| `v3/lomiri-system-settings` | "About phone" for mainline (IMEI from ModemManager, OS, apk licences), brightness, ru translation |
+| `v3/lomiri-camera-app`, `v5/lomiri-camera-app` | QZXing optional, 4K video, 16 MP with binning |
+| `v3/m52xqcamsrc`, `v5/…`, `v6/…`, `v7/m52xqcamsrc` | own GStreamer camera source: Venus hardware encoding, autofocus, digital zoom up to 4x (v7) |
+| `v3/libcamera` | APKBUILD + soft-ISP patches (tetracell S5KGW3 remosaic, no sensor writes without AGC) |
+| `v3/plasma-dialer`, `v4/dialer-*`, `v4/incoming-call`, `v6/plasma-dialer` | 2 SIMs, call over the lock screen, "add contact", SIM in the call log, Lomiri call decision, call bar |
 | `v4/spacebar-multimodem` | SMS on several modems |
-| `v4/calls-lockedapp` | Shell.qml: dialer over the lock screen |
-| `v3/powerkey` | `m52xq-powerkey` v2: idle, "keep screen on", suspend |
+| `v4/calls-lockedapp` | Shell.qml: dialer over the lock screen; in v1 — the lock screen comes back after a call in sleep |
+| `v3/powerkey` | `m52xq-powerkey` v2: idle, "keep screen on", sleep |
 | `v3/qmlkonsole` | key bar above the on-screen keyboard |
 | `v3/aa-shim`, `v3/cellular`, `v3/indicator-bluetooth` | AppArmor stub for click, cellular settings module, Bluetooth indicator |
 | `v3/translations` | Russian translations of settings and the power indicator |
-| `v5/ath11k-ahb` | `ahb.c` with resume retries (WoWLAN) |
+| `v5/ath11k-ahb` | `ahb.c` with a retry on resume (WoWLAN; in v1 the ath11k change is in the kernel) |
+| `v6/modemmanager` | fixed a crash on data connect (use-after-free) |
+| `v6/kpeople`, `v6/qtorganizer5-eds` | KPeople crash (database used from two threads); calendar/alarm |
+| `v6/megapixels`, `v7/…` | Megapixels for Lomiri (scale, buttons in portrait and landscape) |
+| `v7/kirigami` | ColumnView no longer starts an empty animation on every tap (patch for 6.31) — fast dialing |
+| `v7/gps` | `m52xq-gps-alt` shim (LD_PRELOAD) for lomiri-location-service with gpsd ≥ 3.20; XTRA |
+| `v7/sim` | SIM manager: mobile data switch, sync with the quick settings |
 
-Builds run in a pmbootstrap (aarch64) chroot or an Alpine chroot; the exact commands of every build are in
+Builds run in a pmbootstrap chroot (aarch64, `--arch aarch64`) or an Alpine chroot; the exact commands are in
 `docs/КОМАНДЫ-УБУНТУТАЧ24.md` and `docs/ЖУРНАЛ-УБУНТУТАЧ24.md`.
 
 ## 10. Services and scripts of the Lomiri layer
@@ -228,29 +274,37 @@ Builds run in a pmbootstrap (aarch64) chroot or an Alpine chroot; the exact comm
 | Service / script | Purpose |
 |---|---|
 | `m52xq-start-lomiri` | starts the Lomiri session (PATH with lomiri-bin, QML2_IMPORT_PATH, GRID_UNIT_PX=21) |
-| `m52xq-powerkey` (+ .service) | short power key press: lock and blank / screen on, suspend |
+| `m52xq-powerkey` (+ .service) | short power press: lock and screen off / screen on, sleep |
 | `m52xq-osk-bridge` | on-screen keyboard for text-input-v3 (Firefox): input_method_v2 ↔ maliit-server |
-| `m52xq-ringtone` | ringtone and vibration for an incoming modem call |
-| `m52xq-incall-proximity` | blanks the screen at the ear during calls |
+| `m52xq-ringtone` | ringtone and vibration for incoming modem calls |
+| `m52xq-incall-proximity` | screen off at the ear during a call |
+| `m52xq-audio-route`, `m52xq-voip-audio` | call audio route; Telegram call audio in the earpiece |
 | `m52xq-messaging-bridge` | unread SMS in the Lomiri messaging indicator |
-| `m52xq-sim-slots`, `m52xq-indicator-sim`, `m52xq-sim-mode-menu` | slot of every SIM (ICCID), SIMs in the shade, SIM mode menu |
-| `m52xq-gnss-gpsd` | ModemManager GNSS (NMEA) → gpsd for lomiri-location-service |
-| `m52xq-wow-params`, `m52xq-wifi-*`, `m52xq-timesyncd.sh` | WoW flags, Wi-Fi in sleep, time sync after sleep |
-| `m52xq-audio-reprobe` | retries the LPASS VA macro probe after the ADSP start race |
+| `m52xq-sim-slots`, `m52xq-sim-mode-menu` | slot number of each SIM (ICCID), SIM manager: power, mode, data SIM, data switch |
+| `m52xq-gnss-gpsd`, `m52xq-gps-xtra` (+ .timer), `m52xq-gps-restore` | ModemManager GNSS (NMEA in order) → gpsd; XTRA data loaded into the modem after boot |
+| `m52xq-wow-params`, sleep hooks `m52xq-wifi-sleep`, `m52xq-nm-keep-wifi`, `m52xq-wifi-dark` | WoWLAN/APF, Wi-Fi connected in sleep, no screen flash on network wake-ups |
+| `m52xq-spacebar-sleep`, `m52xq-quiet-sleep`, `m52xq-timesyncd.sh` | SMS in sleep, quiet sleep, time sync after sleep |
+| `m52xq-audio-reprobe`, `m52xq-audio-rescue`, `m52xq-tfa-guard` | re-probe of the LPASS VA macro after the ADSP start race, audio recovery, TFA amplifier |
+| `m52xq-venus-load`, `m52xq-virtualcam`, `m52xq-camera-postprocess` | Venus module loading, virtual camera, photo processing |
+| `m52xq-megapixels-lomiri` | starts Megapixels under Lomiri |
 | `m52xq-reboot-recovery` | power menu: reboot to recovery |
-| `m52xq-app-env` | application launch environment (scale, Qt variables) |
-| `m52xq-camera-postprocess` | camera photo post-processing |
+| `m52xq-app-env` | app launch environment (scale, Qt variables) |
+| `m52xq-zram` | zram swap |
+| `etc/polkit-1/rules.d/50-m52xq-timedate.rules` | time zone change from the wizard and settings without the admin password |
 
-The shared hardware services (modem, audio, sensors, Wi-Fi, sleep, NFC) are in the Plasma port repository.
+Shared hardware services (modem, audio, sensors, Wi-Fi, sleep, NFC) are in the Plasma port repository.
 
-## 11. Pitfalls
+## 11. Traps
 
-- Lomiri telephony (`lomiri-telephony-service`) needs telepathy-ofono, while our modem runs through ModemManager — so calls and SMS use plasma-dialer and Spacebar.
-- `iio-sensor-proxy` rotated application windows and touches missed them; in 003 it is masked and the orientation is portrait.
-- Do not install dev packages that downgrade systemd/libc; `apk upgrade` replaces our builds.
+- Lomiri telephony (`lomiri-telephony-service`) needs telepathy-ofono; our modem goes through ModemManager, so calls and SMS use plasma-dialer and Spacebar.
+- `iio-sensor-proxy` rotated app windows and touches landed in the wrong place; the default orientation is portrait.
+- Do not install dev packages that downgrade systemd/libc on the phone; `apk upgrade` replaces our builds. Check what `apk add` wants to remove first.
+- The Lomiri network indicator runs in the session scope (it has no unit): restart it with `systemd-run --user`, not `setsid` from ssh.
 - `pkill -f` inside an ssh command kills its own session — stop processes by PID.
 - Build the zip only from inside the archive folder (`cd archive && zip -9 -r ../x.zip .`), otherwise TWRP does not find `META-INF`.
 - `losetup` of the image needs `--sector-size 4096`, otherwise p1/p2 are not visible.
+- Snapshot from the phone only with GNU tar: busybox tar has no `--null`/`-T` and keeps no xattrs.
 
 ## 12. Credits
-postmarketOS and pmbootstrap; UBports and Lomiri; KDE (plasma-dialer, Spacebar); the mainline Linux developers for Qualcomm SC7280/QCM6490.
+postmarketOS and pmbootstrap; UBports and Lomiri; Alpine Linux; KDE (plasma-dialer, Spacebar, Kirigami); the mainline Linux
+developers for Qualcomm SC7280/QCM6490 (Fairphone 5 and others).

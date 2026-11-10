@@ -7,6 +7,7 @@ No Halium, no libhybris, no Android kernel: mainline Linux 7.1.13, postmarketOS 
 Sister project of [samsung-m52xq-mainline](https://github.com/korryasdlerto-lgtm/samsung-m52xq-mainline) (Plasma Mobile),
 which holds the shared hardware layer, and of [samsung-m52xq-ubuntu-lomiri](https://github.com/korryasdlerto-lgtm/samsung-m52xq-ubuntu-lomiri)
 (the same shell on Ubuntu 26.04). Personal, unofficial project, tested on one SM-M526B.
+Wiki page: [User:Asdlerto Korry](https://wiki.nura.eco/wiki/User:Asdlerto_Korry)
 
 **Release: unofficial v1 (2026-11-10)** — `postmarketos-lomiri-m52xq-mainline-v1-UNOFFICIAL.zip`, md5 `eba0bbd593c733a6f49ccc6ab4d63ac2`.
 What changed since the archive v5: [docs/CHANGES-v1.md](docs/CHANGES-v1.md) ([русский](docs/CHANGES-v1-RU.md)).
@@ -25,8 +26,8 @@ What changed since the archive v5: [docs/CHANGES-v1.md](docs/CHANGES-v1.md) ([р
 | English | [docs/MANUAL-EN.md](docs/MANUAL-EN.md) | [docs/M52-postmarketos-lomiri-manual-EN.docx](docs/M52-postmarketos-lomiri-manual-EN.docx) |
 | Русский | [docs/MANUAL-RU.md](docs/MANUAL-RU.md) | [docs/M52-postmarketos-lomiri-manual-RU.docx](docs/M52-postmarketos-lomiri-manual-RU.docx) |
 
-The manuals describe the archive v5; everything after it is in CHANGES-v1 and in the notes per version
-(`docs/ЧТО_НОВОГО-v6.txt` … `-v9.txt`). Full work log with every command (Russian): [docs/ЖУРНАЛ-УБУНТУТАЧ24.md](docs/ЖУРНАЛ-УБУНТУТАЧ24.md),
+The manuals describe release v1 (install, what works, kernel, how the release image and zip are built); the changes after
+the archive v5 are summed up in CHANGES-v1, per version in `docs/ЧТО_НОВОГО-v6.txt` … `-v9.txt`. Full work log with every command (Russian): [docs/ЖУРНАЛ-УБУНТУТАЧ24.md](docs/ЖУРНАЛ-УБУНТУТАЧ24.md),
 [docs/КОМАНДЫ-УБУНТУТАЧ24.md](docs/КОМАНДЫ-УБУНТУТАЧ24.md).
 
 ## Kernel
